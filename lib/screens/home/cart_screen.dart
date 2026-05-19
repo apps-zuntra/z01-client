@@ -7,6 +7,7 @@ import '../checkout/checkout_screen.dart';
 import 'package:animate_do/animate_do.dart';
 import '../../core/constants.dart';
 import '../../services/cart_service.dart';
+import '../../services/api_service.dart';
 
 class CartScreen extends StatefulWidget {
   const CartScreen({super.key});
@@ -128,7 +129,18 @@ class _CartScreenState extends State<CartScreen> {
         // Group items by category
         Map<String, List<Map<String, dynamic>>> groupedItems = {};
         for (var item in cartItems) {
-          String cat = item['category'] ?? 'Other';
+          String rawCat = (item['category'] ?? 'Other').toString().toLowerCase();
+          String cat = 'Other';
+          if (rawCat == 'studio' || rawCat == 'studios') {
+            cat = 'Studio';
+          } else if (rawCat == 'equipment' || rawCat == 'equipments') {
+            cat = 'Equipment';
+          } else if (rawCat == 'manpower') {
+            cat = 'Manpower';
+          } else {
+            cat = item['category'] ?? 'Other';
+          }
+
           if (!groupedItems.containsKey(cat)) {
             groupedItems[cat] = [];
           }
@@ -480,106 +492,141 @@ class _CartScreenState extends State<CartScreen> {
   Widget _buildProductRow(BuildContext context, Map<String, dynamic> item) {
     final price = item['price_per_day'] ?? item['price_per_hour'] ?? item['price'] ?? 0;
     
-    return Container(
-      margin: const EdgeInsets.only(bottom: 16),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Thumbnail
-          Stack(
-            children: [
-              ClipRRect(
-                borderRadius: BorderRadius.circular(16),
-                child: (item['image_1'] != null && item['image_1'].toString().isNotEmpty)
-                    ? Image.network(item['image_1'], width: 90, height: 90, fit: BoxFit.cover)
-                    : Container(
-                        width: 90,
-                        height: 90,
-                        color: Colors.white10,
-                        child: const Icon(Icons.image, color: Colors.white24)),
-              ),
-              Positioned(
-                top: 6,
-                left: 6,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                  decoration: BoxDecoration(
-                    color: Colors.green.withOpacity(0.9),
-                    borderRadius: BorderRadius.circular(6),
-                  ),
-                  child: const Text('Upcoming',
-                      style: TextStyle(color: Colors.white, fontSize: 8, fontWeight: FontWeight.bold)),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(width: 16),
-          // Info
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+    return Dismissible(
+      key: UniqueKey(),
+      direction: DismissDirection.endToStart,
+      onDismissed: (direction) async {
+        await CartService.removeFromCart(item);
+        setState(() {});
+      },
+      background: Container(
+        alignment: Alignment.centerRight,
+        padding: const EdgeInsets.only(right: 20),
+        margin: const EdgeInsets.only(bottom: 16),
+        decoration: BoxDecoration(
+          color: Colors.redAccent.withOpacity(0.8),
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: const Icon(Icons.delete_outline, color: Colors.white, size: 28),
+      ),
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 16),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Thumbnail
+            Stack(
               children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Expanded(
-                      child: Text(
-                        item['listing_title'] ?? 'N/A',
-                        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFBA68C8).withOpacity(0.15),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Text('₹$price/day',
-                          style: const TextStyle(color: Color(0xFFBA68C8), fontSize: 10, fontWeight: FontWeight.w800)),
-                    ),
-                  ],
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(16),
+                  child: (item['image_1'] != null && item['image_1'].toString().isNotEmpty)
+                      ? Image.network(
+                          ApiService.getSafeImageUrl(item['image_1']),
+                          width: 90,
+                          height: 90,
+                          fit: BoxFit.cover,
+                          errorBuilder: (context, error, stackTrace) => Container(
+                            width: 90,
+                            height: 90,
+                            color: Colors.white10,
+                            child: const Icon(Icons.image_not_supported_outlined, color: Colors.white24),
+                          ),
+                        )
+                      : Container(
+                          width: 90,
+                          height: 90,
+                          color: Colors.white10,
+                          child: const Icon(Icons.image, color: Colors.white24)),
                 ),
-                const SizedBox(height: 6),
-                Row(
-                  children: [
-                    Icon(Icons.location_on_outlined, color: Colors.white.withOpacity(0.4), size: 14),
-                    const SizedBox(width: 4),
-                    Text(item['location_address'] ?? 'Nearby',
-                        style: TextStyle(color: Colors.white.withOpacity(0.4), fontSize: 12)),
-                  ],
-                ),
-                const SizedBox(height: 4),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.05),
-                    borderRadius: BorderRadius.circular(6),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(Icons.calendar_today_outlined, color: Colors.white.withOpacity(0.6), size: 12),
-                      const SizedBox(width: 6),
-                      Text('Next Week (Selected)',
-                          style: TextStyle(color: Colors.white.withOpacity(0.6), fontSize: 11, fontWeight: FontWeight.w500)),
-                    ],
+                Positioned(
+                  top: 6,
+                  left: 6,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: Colors.green.withOpacity(0.9),
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: const Text('Upcoming',
+                        style: TextStyle(color: Colors.white, fontSize: 8, fontWeight: FontWeight.bold)),
                   ),
                 ),
               ],
             ),
-          ),
-          // Delete button
-          IconButton(
-            onPressed: () async {
-              await CartService.removeFromCart(item['id'], item['category']);
-              setState(() {});
-            },
-            icon: Icon(Icons.close, color: Colors.white.withOpacity(0.2), size: 18),
-            visualDensity: VisualDensity.compact,
-          ),
-        ],
+            const SizedBox(width: 16),
+            // Info
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Expanded(
+                        child: Text(
+                          item['listing_title'] ?? 'N/A',
+                          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFBA68C8).withOpacity(0.15),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Text('₹$price/day',
+                            style: const TextStyle(color: Color(0xFFBA68C8), fontSize: 10, fontWeight: FontWeight.w800)),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 6),
+                  Row(
+                    children: [
+                      Icon(Icons.location_on_outlined, color: Colors.white.withOpacity(0.4), size: 14),
+                      const SizedBox(width: 4),
+                      Expanded(
+                        child: Text(
+                          item['location_address'] ?? 'Nearby',
+                          style: TextStyle(color: Colors.white.withOpacity(0.4), fontSize: 12),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.05),
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.calendar_today_outlined, color: Colors.white.withOpacity(0.6), size: 12),
+                        const SizedBox(width: 6),
+                        Text('Next Week (Selected)',
+                            style: TextStyle(color: Colors.white.withOpacity(0.6), fontSize: 11, fontWeight: FontWeight.w500)),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            // Delete button
+            IconButton(
+              onPressed: () async {
+                await CartService.removeFromCart(item);
+                setState(() {});
+              },
+              icon: const Icon(Icons.delete_outline, color: Colors.redAccent, size: 22),
+              visualDensity: VisualDensity.compact,
+            ),
+          ],
+        ),
       ),
     );
   }

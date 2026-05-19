@@ -1120,7 +1120,7 @@ class _StudioDetailScreenState extends State<StudioDetailScreen> {
                 stream: CartService.cartStream,
                 builder: (context, snapshot) {
                   final cartItems = snapshot.data ?? [];
-                  final isInCart = cartItems.any((item) => item['listing_id'].toString() == widget.studio.id.toString());
+                  final isInCart = cartItems.any((item) => item['id'].toString() == widget.studio.id.toString());
                   
                   return Container(
                     height: 54,
@@ -1135,7 +1135,7 @@ class _StudioDetailScreenState extends State<StudioDetailScreen> {
                         setState(() => _isAddingToCart = true);
                         try {
                           if (isInCart) {
-                            await CartService.removeFromCart(widget.studio.id, 'studio');
+                            await CartService.removeFromCart({'id': widget.studio.id, 'category': widget.studio.category, 'listing_title': widget.studio.listingTitle});
                             if (mounted) {
                               ScaffoldMessenger.of(context).showSnackBar(
                                 const SnackBar(
@@ -1146,7 +1146,7 @@ class _StudioDetailScreenState extends State<StudioDetailScreen> {
                               );
                             }
                           } else {
-                            await CartService.addToCart({...widget.studio.toJson(), 'category': 'studio'});
+                            await CartService.addToCart(widget.studio.toJson());
                             if (mounted) {
                               ScaffoldMessenger.of(context).showSnackBar(
                                 const SnackBar(

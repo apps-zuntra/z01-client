@@ -81,9 +81,9 @@ class PaymentScreen extends StatelessWidget {
                       onPressed: () async {
                         final success = await ApiService.createBooking({
                           'listing_id': studio.id,
-                          'pickup_date': DateTime.now().add(const Duration(days: 1)).toIso8601String(),
-                          'return_date': DateTime.now().add(const Duration(days: 4)).toIso8601String(),
-                          'total_price': total,
+                          'start_date': DateTime.now().add(const Duration(days: 1)).toIso8601String(),
+                          'end_date': DateTime.now().add(const Duration(days: 4)).toIso8601String(),
+                          'total_amount': total,
                         });
                         
                         if (success) {
@@ -99,7 +99,7 @@ class PaymentScreen extends StatelessWidget {
                         foregroundColor: Colors.white,
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                       ),
-                      child: const Text('Confirm & Pay', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                      child: const Text('Confirm Booking', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                     ),
                   ),
                 ),

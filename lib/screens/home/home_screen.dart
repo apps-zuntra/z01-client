@@ -696,6 +696,7 @@ class _HomeScreenState extends State<HomeScreen> {
             },
             child: Container(
               width: 200,
+              height: 250,
               margin: const EdgeInsets.only(right: 16),
               decoration: BoxDecoration(
                 color: const Color(0xFF1E1E1E),
@@ -709,11 +710,23 @@ class _HomeScreenState extends State<HomeScreen> {
                     aspectRatio: 1.2,
                     child: Stack(
                       children: [
-                        ClipRRect(
-                          borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
-                          child: (listing.images.isNotEmpty)
-                            ? Image.network(listing.images[0], fit: BoxFit.cover, width: double.infinity)
-                            : Container(color: Colors.grey[800], child: const Center(child: Icon(Icons.image, color: Colors.white24))),
+                        Positioned.fill(
+                          child: ClipRRect(
+                            borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+                            child: (listing.images.isNotEmpty)
+                              ? Image.network(
+                                  listing.images[0],
+                                  fit: BoxFit.cover,
+                                  width: double.infinity,
+                                  height: double.infinity,
+                                )
+                              : Container(
+                                  color: Colors.grey[800],
+                                  child: const Center(
+                                    child: Icon(Icons.image, color: Colors.white24),
+                                  ),
+                                ),
+                          ),
                         ),
                         Positioned(
                           top: 8,
@@ -739,34 +752,43 @@ class _HomeScreenState extends State<HomeScreen> {
                       ],
                     ),
                   ),
-                  Padding(
-                    padding: const EdgeInsets.all(12.0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          listing.listingTitle, 
-                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.white),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          listing.subCategory,
-                          style: TextStyle(fontSize: 10, color: Colors.white.withOpacity(0.5)),
-                        ),
-                        const SizedBox(height: 8),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text(
-                              "₹${listing.pricePerDay ?? listing.pricePerHour ?? '0'}",
-                              style: const TextStyle(fontWeight: FontWeight.w900, color: Color(0xFFBA68C8), fontSize: 14),
-                            ),
-                            const Icon(Icons.favorite_border, color: Colors.white38, size: 16),
-                          ],
-                        ),
-                      ],
+                  Expanded(
+                    child: Padding(
+                      padding: const EdgeInsets.all(12.0),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                listing.listingTitle, 
+                                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.white),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                listing.subCategory,
+                                style: TextStyle(fontSize: 10, color: Colors.white.withOpacity(0.5)),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ],
+                          ),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                "₹${listing.pricePerDay ?? listing.pricePerHour ?? '0'}",
+                                style: const TextStyle(fontWeight: FontWeight.w900, color: Color(0xFFBA68C8), fontSize: 14),
+                              ),
+                              const Icon(Icons.favorite_border, color: Colors.white38, size: 16),
+                            ],
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 ],

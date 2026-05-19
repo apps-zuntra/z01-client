@@ -48,6 +48,7 @@ dependencies:
   url_launcher: ^6.3.2
   http: ^1.6.0
   shared_preferences: ^2.5.5
+  google_maps_flutter_web: ^0.6.2+1
 
 dev_dependencies:
   flutter_test:

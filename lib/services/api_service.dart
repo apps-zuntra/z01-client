@@ -84,7 +84,12 @@ class ApiService {
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         final list = data['data'] as List? ?? [];
-        return list.map((e) => ListingModel.fromJson(e)).toList();
+        return list.map((e) {
+          if (e is Map<String, dynamic>) {
+             e['category'] = e['category']?.toString().isNotEmpty == true ? e['category'] : 'Studio';
+          }
+          return ListingModel.fromJson(e as Map<String, dynamic>);
+        }).toList();
       }
       return [];
     } catch (e) {
@@ -99,7 +104,12 @@ class ApiService {
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         final list = data['data'] as List? ?? [];
-        return list.map((e) => ListingModel.fromJson(e)).toList();
+        return list.map((e) {
+          if (e is Map<String, dynamic>) {
+             e['category'] = e['category']?.toString().isNotEmpty == true ? e['category'] : 'Equipment';
+          }
+          return ListingModel.fromJson(e as Map<String, dynamic>);
+        }).toList();
       }
       return [];
     } catch (e) {
@@ -114,7 +124,12 @@ class ApiService {
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         final list = data['data'] as List? ?? [];
-        return list.map((e) => ListingModel.fromJson(e)).toList();
+        return list.map((e) {
+          if (e is Map<String, dynamic>) {
+             e['category'] = e['category']?.toString().isNotEmpty == true ? e['category'] : 'Manpower';
+          }
+          return ListingModel.fromJson(e as Map<String, dynamic>);
+        }).toList();
       }
       return [];
     } catch (e) {
@@ -130,7 +145,7 @@ class ApiService {
       
       if (userId == null) return false;
       
-      bookingData['user_id'] = int.parse(userId);
+      bookingData['user_id'] = userId;
       
       final response = await http.post(
         Uri.parse('$baseUrl/bookings'),
@@ -161,6 +176,38 @@ class ApiService {
     } catch (e) {
       print('Error getting user bookings: $e');
       return [];
+    }
+  }
+
+  static Future<Map<String, dynamic>?> getBooking(String bookingId) async {
+    try {
+      final response = await http.get(Uri.parse('$baseUrl/bookings/detail/$bookingId'));
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        return data['data'];
+      }
+      return null;
+    } catch (e) {
+      print('Error getting booking: $e');
+      return null;
+    }
+  }
+
+  static Future<bool> cancelBooking(String bookingId, String reason) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/bookings/$bookingId/cancel'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'reason': reason}),
+      );
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        final data = jsonDecode(response.body);
+        return data['success'] == true;
+      }
+      return false;
+    } catch (e) {
+      print('Error canceling booking: $e');
+      return false;
     }
   }
 
@@ -263,4 +310,79 @@ class ApiService {
       return [];
     }
   }
+
+  static String getSafeImageUrl(String? url) {
+    if (url == null || url.trim().isEmpty) return '';
+    String trimmed = url.trim();
+    if (!trimmed.startsWith('http://') && !trimmed.startsWith('https://')) {
+      if (trimmed.startsWith('/')) {
+        trimmed = trimmed.substring(1);
+      }
+      trimmed = '$baseUrl/$trimmed';
+    }
+    // Automatically route cloudflare R2 and Supabase images through our proxy on Web to bypass CORS!
+    if (kIsWeb && (trimmed.contains('r2.dev') || trimmed.contains('cloudflarestorage.com') || trimmed.contains('supabase.co'))) {
+      return '$baseUrl/upload/proxy?url=${Uri.encodeComponent(trimmed)}';
+    }
+    try {
+      return Uri.encodeFull(trimmed);
+    } catch (e) {
+      return trimmed;
+    }
+  }
+
+  static Future<List<Map<String, dynamic>>> getCart(String userId) async {
+    try {
+      final response = await http.get(Uri.parse('$baseUrl/cart/$userId'));
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        if (data['success'] == true) {
+          return List<Map<String, dynamic>>.from(data['data']);
+        }
+      }
+      return [];
+    } catch (e) {
+      print('Error getting cart: $e');
+      return [];
+    }
+  }
+
+  static Future<bool> addToCart(String userId, Map<String, dynamic> item) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/cart/add'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'userId': userId, 'item': item}),
+      );
+      return response.statusCode == 201 || response.statusCode == 200;
+    } catch (e) {
+      print('Error adding to cart: $e');
+      return false;
+    }
+  }
+
+  static Future<bool> removeFromCart(String userId, int listingId, String category) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/cart/remove'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'userId': userId, 'listingId': listingId, 'category': category}),
+      );
+      return response.statusCode == 201 || response.statusCode == 200;
+    } catch (e) {
+      print('Error removing from cart: $e');
+      return false;
+    }
+  }
+
+  static Future<bool> clearCart(String userId) async {
+    try {
+      final response = await http.delete(Uri.parse('$baseUrl/cart/clear/$userId'));
+      return response.statusCode == 200;
+    } catch (e) {
+      print('Error clearing cart: $e');
+      return false;
+    }
+  }
 }
+

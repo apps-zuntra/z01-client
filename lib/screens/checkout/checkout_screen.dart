@@ -235,7 +235,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         });
         
         if (success) {
-          await CartService.removeFromCart(item['id'], item['category']);
+          await CartService.removeFromCart(item);
         } else {
           allSuccessful = false;
         }
