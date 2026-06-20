@@ -1,4 +1,5 @@
 # Miscellaneous
+**/.git_backup/
 *.class
 *.log
 *.pyc

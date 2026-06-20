@@ -1,0 +1,43 @@
+import { Module } from '@nestjs/common';
+import { AppController } from './app.controller';
+import { AppService } from './app.service';
+import { DatabaseModule } from './database/database.module';
+import { StudiosModule } from './studios/studios.module';
+import { EquipmentModule } from './equipment/equipment.module';
+import { ManpowerModule } from './manpower/manpower.module';
+import { BookingsModule } from './bookings/bookings.module';
+import { AuthModule } from './auth/auth.module';
+import { VendorsModule } from './vendors/vendors.module';
+import { UploadModule } from './upload/upload.module';
+import { ListingsModule } from './listings/listings.module';
+import { ReviewsModule } from './reviews/reviews.module';
+import { NotificationsModule } from './notifications/notifications.module';
+import { CartModule } from './cart/cart.module';
+import { ReportsModule } from './reports/reports.module';
+import { WishlistModule } from './wishlist/wishlist.module';
+import { PaymentsModule } from './payments/payments.module';
+import { CronModule } from './cron/cron.module';
+
+@Module({
+  imports: [
+    DatabaseModule,
+    StudiosModule,
+    EquipmentModule,
+    ManpowerModule,
+    BookingsModule,
+    AuthModule,
+    VendorsModule,
+    UploadModule,
+    ListingsModule,
+    ReviewsModule,
+    NotificationsModule,
+    CartModule,
+    ReportsModule,
+    WishlistModule,
+    PaymentsModule,
+    CronModule,
+  ],
+  controllers: [AppController],
+  providers: [AppService],
+})
+export class AppModule {}
