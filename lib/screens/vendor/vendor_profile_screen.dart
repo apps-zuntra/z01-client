@@ -48,7 +48,7 @@ class _VendorProfileScreenState extends State<VendorProfileScreen> {
         title: Text(widget.vendor['name'] ?? 'Vendor Shop', style: const TextStyle(fontWeight: FontWeight.bold)),
       ),
       body: _isLoading 
-        ? const Center(child: CircularProgressIndicator(color: Color(0xFFBA68C8)))
+        ? const Center(child: CircularProgressIndicator(color: Color(0xFFCA9AFF)))
         : Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -84,10 +84,10 @@ class _VendorProfileScreenState extends State<VendorProfileScreen> {
         children: [
           CircleAvatar(
             radius: 30,
-            backgroundColor: const Color(0xFFBA68C8).withOpacity(0.2),
+            backgroundColor: const Color(0xFFCA9AFF).withOpacity(0.2),
             child: Text(
               (widget.vendor['name'] ?? 'V')[0].toUpperCase(),
-              style: const TextStyle(color: Color(0xFFBA68C8), fontWeight: FontWeight.bold, fontSize: 24),
+              style: const TextStyle(color: Color(0xFFCA9AFF), fontWeight: FontWeight.bold, fontSize: 24),
             ),
           ),
           const SizedBox(width: 16),
@@ -134,7 +134,7 @@ class _VendorProfileScreenState extends State<VendorProfileScreen> {
               ClipRRect(
                 borderRadius: BorderRadius.circular(8),
                 child: Image.network(
-                  listing.images.isNotEmpty ? listing.images[0] : '',
+                  (listing.images != null && listing.images.isNotEmpty) ? listing.images[0] : '',
                   width: 80,
                   height: 80,
                   fit: BoxFit.cover,
@@ -160,7 +160,48 @@ class _VendorProfileScreenState extends State<VendorProfileScreen> {
                     const SizedBox(height: 8),
                     Text(
                       "₹${listing.pricePerDay ?? listing.pricePerHour}/unit",
-                      style: const TextStyle(color: Color(0xFFBA68C8), fontWeight: FontWeight.bold, fontSize: 14),
+                      style: const TextStyle(color: Color(0xFFCA9AFF), fontWeight: FontWeight.bold, fontSize: 14),
+                    ),
+                    Builder(
+                      builder: (ctx) {
+                        List<String> tags = [];
+                        if (listing.category == 'Equipment') {
+                          tags = listing.equipments.isNotEmpty ? listing.equipments : (listing.amenities ?? []);
+                        } else if (listing.category == 'Manpower') {
+                          tags = listing.manpower.isNotEmpty ? listing.manpower : (listing.amenities ?? []);
+                        } else {
+                          tags = listing.amenities ?? [];
+                        }
+                        if (tags.isEmpty) return const SizedBox.shrink();
+                        return Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const SizedBox(height: 8),
+                            SizedBox(
+                              height: 24,
+                              child: ListView.separated(
+                                scrollDirection: Axis.horizontal,
+                                itemCount: tags.length > 3 ? 3 : tags.length,
+                                separatorBuilder: (_, __) => const SizedBox(width: 6),
+                                itemBuilder: (context, i) => Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFCA9AFF).withOpacity(0.10),
+                                    borderRadius: BorderRadius.circular(12),
+                                    border: Border.all(color: const Color(0xFFCA9AFF).withOpacity(0.35), width: 1),
+                                  ),
+                                  child: Center(
+                                    child: Text(
+                                      tags[i].toString(),
+                                      style: const TextStyle(color: Color(0xFFCA9AFF), fontSize: 10, fontWeight: FontWeight.w600),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        );
+                      },
                     ),
                   ],
                 ),

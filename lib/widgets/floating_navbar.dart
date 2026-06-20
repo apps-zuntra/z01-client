@@ -62,7 +62,7 @@ class CustomFloatingNavbar extends StatelessWidget {
               children: [
                 Icon(
                   icon,
-                  color: isSelected ? const Color(0xFFBA68C8) : Colors.white70,
+                  color: isSelected ? const Color(0xFFCA9AFF) : Colors.white70,
                   size: 26,
                 ),
                 if (index == 3) // Cart badge
@@ -80,7 +80,7 @@ class CustomFloatingNavbar extends StatelessWidget {
                             child: Container(
                               padding: const EdgeInsets.all(2),
                               decoration: const BoxDecoration(
-                                color: Color(0xFFBA68C8),
+                                color: Color(0xFFCA9AFF),
                                 shape: BoxShape.circle,
                               ),
                               constraints: const BoxConstraints(
@@ -110,7 +110,7 @@ class CustomFloatingNavbar extends StatelessWidget {
               child: Text(
                 label,
                 style: TextStyle(
-                  color: isSelected ? const Color(0xFFBA68C8) : Colors.white70,
+                  color: isSelected ? const Color(0xFFCA9AFF) : Colors.white70,
                   fontSize: 10,
                   fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
                 ),

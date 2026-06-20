@@ -117,7 +117,7 @@ class _AddressDetailsScreenState extends State<AddressDetailsScreen> {
                   ),
                   child: Row(
                     children: [
-                      const Icon(Icons.location_on, color: Color(0xFFBA68C8), size: 28),
+                      const Icon(Icons.location_on, color: Color(0xFFCA9AFF), size: 28),
                       const SizedBox(width: 12),
                       Expanded(
                         child: Column(
@@ -150,7 +150,7 @@ class _AddressDetailsScreenState extends State<AddressDetailsScreen> {
                 child: ElevatedButton(
                   onPressed: _isLoading ? null : _saveAddress,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFFBA68C8),
+                    backgroundColor: const Color(0xFFCA9AFF),
                     foregroundColor: Colors.white,
                     minimumSize: const Size(double.infinity, 54),
                     shape: RoundedRectangleBorder(
@@ -191,7 +191,7 @@ class _AddressDetailsScreenState extends State<AddressDetailsScreen> {
           ),
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
-            borderSide: const BorderSide(color: Color(0xFFBA68C8)),
+            borderSide: const BorderSide(color: Color(0xFFCA9AFF)),
           ),
           errorBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),

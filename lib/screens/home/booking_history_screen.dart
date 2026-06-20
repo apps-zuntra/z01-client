@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'dart:async';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../services/api_service.dart';
 import 'package:animate_do/animate_do.dart';
 import '../../core/constants.dart';
@@ -167,19 +168,26 @@ class _BookingHistoryScreenState extends State<BookingHistoryScreen> {
     final rawImage = booking['image_1'] ?? booking['listing_image'];
     final imageUrl = _getSafeImageUrl(rawImage);
     final status = (booking['status'] ?? '').toString().toLowerCase();
+    final paymentStatus = (booking['payment_status'] ?? '').toString().toLowerCase();
 
     Color statusColor = Colors.green;
     String statusLabel = 'Confirmed';
     
-    if (status == 'pending') {
-      statusColor = Colors.orange;
-      statusLabel = 'Pending';
-    } else if (status == 'canceled' || status == 'cancelled' || status == 'cancel') {
-      statusColor = Colors.red;
+    if (status == 'canceled' || status == 'cancelled' || status == 'cancel') {
+      statusColor = const Color(0xFFEF4444); // Red
       statusLabel = 'Canceled';
     } else if (status == 'completed' || status == 'returned') {
-      statusColor = Colors.blue;
+      statusColor = const Color(0xFF9CA3AF); // Gray
       statusLabel = 'Completed';
+    } else if (status == 'accepted' || status == 'confirmed' || status == 'approved' || status == 'delivered') {
+      statusColor = const Color(0xFFCA9AFF);
+      statusLabel = 'Ongoing';
+    } else if (paymentStatus == 'paid' || paymentStatus == 'true' || paymentStatus == 'success' || status == 'paid') {
+      statusColor = Colors.green;
+      statusLabel = 'Upcoming';
+    } else if (status == 'pending') {
+      statusColor = Colors.orange;
+      statusLabel = 'Pending Payment';
     }
 
     // Fix for RangeError and proper truncating
@@ -190,15 +198,16 @@ class _BookingHistoryScreenState extends State<BookingHistoryScreen> {
       displayId = displayId.toUpperCase();
     }
 
-    final isUpcoming = status == 'confirmed' || status == 'upcoming' || status == 'pending';
-    final isCompleted = status == 'completed' || status == 'returned';
+    final isUpcoming = statusLabel == 'Upcoming' || statusLabel == 'Pending Payment';
+    final isOngoing = statusLabel == 'Ongoing';
+    final isCompleted = statusLabel == 'Completed';
 
     return Container(
       margin: const EdgeInsets.only(bottom: 20),
       decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: Colors.white.withOpacity(0.05)),
+        color: const Color(0xFF1E1E1E),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.white.withOpacity(0.06), width: 1.2),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.15),
@@ -208,7 +217,7 @@ class _BookingHistoryScreenState extends State<BookingHistoryScreen> {
         ],
       ),
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(24),
+        borderRadius: BorderRadius.circular(20),
         child: Column(
           children: [
             Container(
@@ -319,12 +328,12 @@ class _BookingHistoryScreenState extends State<BookingHistoryScreen> {
                         const SizedBox(height: 8),
                         Row(
                           children: [
-                            Icon(Icons.location_on_rounded, color: AppColors.primary.withOpacity(0.7), size: 16),
+                            const Icon(Icons.location_on_outlined, color: Colors.white38, size: 16),
                             const SizedBox(width: 4),
                             Expanded(
                               child: Text(
                                 booking['location_address'] ?? 'Location not specified',
-                                style: TextStyle(color: Colors.white.withOpacity(0.5), fontSize: 12),
+                                style: const TextStyle(color: Colors.white54, fontSize: 12),
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                               ),
@@ -341,11 +350,11 @@ class _BookingHistoryScreenState extends State<BookingHistoryScreen> {
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              const Icon(Icons.calendar_month_rounded, color: Colors.white38, size: 14),
+                              const Icon(Icons.calendar_month_outlined, color: Colors.white38, size: 14),
                               const SizedBox(width: 6),
                               Text(
                                 '${DateFormat('MMM d').format(pickup)} - ${DateFormat('MMM d').format(returnDate)}',
-                                style: const TextStyle(color: Colors.white70, fontSize: 11, fontWeight: FontWeight.bold),
+                                style: const TextStyle(color: Colors.white60, fontSize: 11, fontWeight: FontWeight.bold),
                               ),
                             ],
                           ),
@@ -423,7 +432,7 @@ class _BookingHistoryScreenState extends State<BookingHistoryScreen> {
                             TextButton(
                               onPressed: () => _showReviewBottomSheet(context, booking),
                               style: TextButton.styleFrom(
-                                foregroundColor: AppColors.primary,
+                                foregroundColor: const Color(0xFFCA9AFF),
                                 padding: const EdgeInsets.symmetric(horizontal: 16),
                               ),
                               child: const Text('Review', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
@@ -432,34 +441,34 @@ class _BookingHistoryScreenState extends State<BookingHistoryScreen> {
                           ElevatedButton(
                             onPressed: () async {
                               final result = await Navigator.push(
-                                context,
-                                MaterialPageRoute(builder: (_) => BookingDetailScreen(booking: booking)),
-                              );
-                              if (result == true) {
-                                _fetchBookings();
-                              }
-                            },
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: AppColors.primary,
-                              foregroundColor: Colors.black,
-                              elevation: 0,
-                              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                              minimumSize: const Size(0, 0),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                                  context,
+                                  MaterialPageRoute(builder: (_) => BookingDetailScreen(booking: booking)),
+                                );
+                                if (result == true) {
+                                  _fetchBookings();
+                                }
+                              },
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: const Color(0xFFCA9AFF),
+                                foregroundColor: Colors.white,
+                                elevation: 0,
+                                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                                minimumSize: const Size(0, 0),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                              ),
+                              child: const Text('DETAILS', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w900, letterSpacing: 0.5)),
                             ),
-                            child: const Text('DETAILS', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w900, letterSpacing: 0.5)),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ],
+                          ],
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
-      ),
-    );
+      );
   }
 
   void _showReviewBottomSheet(BuildContext context, Map<String, dynamic> booking) {
@@ -532,11 +541,16 @@ class _BookingHistoryScreenState extends State<BookingHistoryScreen> {
                       setModalState(() => isSubmitting = true);
                       try {
                         final listingId = booking['listing_id']?.toString() ?? booking['id']?.toString() ?? '1';
+                        final prefs = await SharedPreferences.getInstance();
+                        final userId = prefs.getString('user_id');
+                        final userName = prefs.getString('user_name') ?? 'Customer';
+
                         final reviewData = {
                           'listing_id': int.tryParse(listingId) ?? 1,
                           'rating': localRating,
                           'comment': reviewController.text,
-                          'user_name': 'Customer',
+                          'user_id': userId,
+                          'user_name': userName,
                           'images': [],
                           'created_at': DateTime.now().toIso8601String(),
                         };

@@ -1,3 +1,4 @@
+import 'dart:convert';
 
 class ListingModel {
   final String id;
@@ -13,6 +14,8 @@ class ListingModel {
   final double? pricePerDay;
   final int? minimumBookingHours;
   final List<String> amenities;
+  final List<String> equipments;
+  final List<String> manpower;
   final String? cancellationPolicy;
   final String? rules;
   final List<String> images;
@@ -27,6 +30,8 @@ class ListingModel {
   final String? brand;
   final String? model;
   final int? quantity;
+  final double? depositAmount;
+  final List<String>? blockedDates;
 
   ListingModel({
     required this.id,
@@ -42,6 +47,8 @@ class ListingModel {
     this.pricePerDay,
     this.minimumBookingHours,
     required this.amenities,
+    this.equipments = const [],
+    this.manpower = const [],
     this.cancellationPolicy,
     this.rules,
     required this.images,
@@ -56,6 +63,8 @@ class ListingModel {
     this.brand,
     this.model,
     this.quantity,
+    this.depositAmount,
+    this.blockedDates,
   });
 
   factory ListingModel.fromJson(Map<String, dynamic> json) {
@@ -74,6 +83,63 @@ class ListingModel {
       parsedAmenities = List<String>.from(json['amenities'].map((e) => e.toString()));
     }
 
+    // Parse equipments
+    List<String> parsedEquipments = [];
+    if (json['equipments'] is List) {
+      parsedEquipments = List<String>.from(json['equipments'].map((e) => e.toString()));
+    }
+
+    // Parse manpower
+    List<String> parsedManpower = [];
+    if (json['manpower'] is List) {
+      parsedManpower = List<String>.from(json['manpower'].map((e) => e.toString()));
+    }
+
+    // Parse blocked dates
+    List<String>? parsedBlockedDates;
+    if (json['blocked_dates'] is List) {
+      parsedBlockedDates = List<String>.from(json['blocked_dates'].map((e) => e.toString()));
+    }
+
+    // Parse specifications for accessories and services
+    Map<String, dynamic>? parsedSpecs;
+    if (json['specifications'] != null) {
+      if (json['specifications'] is Map) {
+        parsedSpecs = Map<String, dynamic>.from(json['specifications'] as Map);
+      } else if (json['specifications'] is String) {
+        try {
+          parsedSpecs = Map<String, dynamic>.from(jsonDecode(json['specifications']) as Map);
+        } catch (e) {
+          print("Error decoding specifications: $e");
+        }
+      }
+    }
+
+    if (parsedSpecs != null) {
+      if (parsedSpecs['includedAccessories'] is List) {
+        final accList = parsedSpecs['includedAccessories'] as List;
+        for (var item in accList) {
+          final s = item.toString();
+          if (!parsedEquipments.contains(s)) parsedEquipments.add(s);
+        }
+      }
+      
+      if (parsedSpecs['featureTags'] is List) {
+        final fList = parsedSpecs['featureTags'] as List;
+        for (var item in fList) {
+          final s = item.toString();
+          if (!parsedEquipments.contains(s)) parsedEquipments.add(s);
+        }
+      }
+      if (parsedSpecs['includedServices'] is List) {
+        final srvList = parsedSpecs['includedServices'] as List;
+        for (var item in srvList) {
+          final s = item.toString();
+          if (!parsedManpower.contains(s)) parsedManpower.add(s);
+        }
+      }
+    }
+
     return ListingModel(
       id: json['id']?.toString() ?? '',
       vendorId: json['vendor_id']?.toString() ?? '',
@@ -85,9 +151,11 @@ class ListingModel {
       capacity: json['capacity'] is int ? json['capacity'] : int.tryParse(json['capacity']?.toString() ?? ''),
       areaSqft: json['area_sqft'] is int ? json['area_sqft'] : int.tryParse(json['area_sqft']?.toString() ?? ''),
       pricePerHour: json['price_per_hour'] != null ? double.tryParse(json['price_per_hour'].toString()) : null,
-      pricePerDay: json['price_per_day'] != null ? double.tryParse(json['price_per_day'].toString()) : null,
+      pricePerDay: json['price_per_day'] != null ? double.tryParse(json['price_per_day'].toString()) : (json['price'] != null ? double.tryParse(json['price'].toString()) : null),
       minimumBookingHours: json['minimum_booking_hours'] is int ? json['minimum_booking_hours'] : int.tryParse(json['minimum_booking_hours']?.toString() ?? ''),
       amenities: parsedAmenities,
+      equipments: parsedEquipments,
+      manpower: parsedManpower,
       cancellationPolicy: json['cancellation_policy']?.toString(),
       rules: json['rules']?.toString(),
       images: parsedImages,
@@ -102,6 +170,8 @@ class ListingModel {
       brand: json['brand']?.toString(),
       model: json['model']?.toString(),
       quantity: json['quantity'] is int ? json['quantity'] : int.tryParse(json['quantity']?.toString() ?? ''),
+      depositAmount: json['deposit_amount'] != null ? double.tryParse(json['deposit_amount'].toString()) : null,
+      blockedDates: parsedBlockedDates,
     );
   }
 
@@ -120,6 +190,8 @@ class ListingModel {
       'price_per_day': pricePerDay,
       'minimum_booking_hours': minimumBookingHours,
       'amenities': amenities,
+      'equipments': equipments,
+      'manpower': manpower,
       'cancellation_policy': cancellationPolicy,
       'rules': rules,
       'status': status,
@@ -133,6 +205,8 @@ class ListingModel {
       'brand': brand,
       'model': model,
       'quantity': quantity,
+      'deposit_amount': depositAmount,
+      'blocked_dates': blockedDates,
     };
     
     // Add images back in format image_1, image_2, etc.

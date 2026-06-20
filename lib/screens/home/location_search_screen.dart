@@ -18,68 +18,37 @@ class _LocationSearchScreenState extends State<LocationSearchScreen> {
   final _searchController = TextEditingController();
   bool _isSearching = false;
   bool _isLocating = false;
+  String? _savedAddress;
 
-  Future<void> _useCurrentLocation() async {
-    setState(() => _isLocating = true);
+  @override
+  void initState() {
+    super.initState();
+    _loadSavedAddress();
+  }
+
+  Future<void> _loadSavedAddress() async {
     try {
-      bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
-      if (!serviceEnabled) {
-        throw Exception('Location services are disabled.');
-      }
-
-      LocationPermission permission = await Geolocator.checkPermission();
-      if (permission == LocationPermission.denied) {
-        permission = await Geolocator.requestPermission();
-        if (permission == LocationPermission.denied) {
-          throw Exception('Location permissions are denied');
-        }
-      }
-
-      if (permission == LocationPermission.deniedForever) {
-        throw Exception('Location permissions are permanently denied.');
-      }
-
-      Position position = await Geolocator.getCurrentPosition();
-      
-      // Reverse Geocode
-      List<Placemark> placemarks = await placemarkFromCoordinates(position.latitude, position.longitude);
-      String address = 'Unknown Location';
-      String locality = 'Unknown Area';
-      if (placemarks.isNotEmpty) {
-        Placemark p = placemarks[0];
-        locality = p.locality ?? p.subLocality ?? 'Unknown Area';
-        address = '${p.street}, ${p.subLocality}, ${p.locality}, ${p.postalCode}';
-      }
-
       final prefs = await SharedPreferences.getInstance();
-      await prefs.setString('location_address', address);
-      await prefs.setString('location_locality', locality);
-      await prefs.setDouble('location_lat', position.latitude);
-      await prefs.setDouble('location_lng', position.longitude);
-
       if (mounted) {
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(
-            builder: (_) => AddressDetailsScreen(
-              mapAddress: address,
-              locality: locality,
-              lat: position.latitude,
-              lng: position.longitude,
-            ),
-          ),
-        );
+        setState(() {
+          _savedAddress = prefs.getString('location_address');
+        });
       }
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(e.toString()), backgroundColor: Colors.red),
-        );
-      }
-    } finally {
-      if (mounted) setState(() => _isLocating = false);
+      debugPrint('Error loading saved address: $e');
     }
   }
+
+  Future<void> _useCurrentLocation() async {
+    if (!mounted) return;
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => const LocationMapScreen(),
+      ),
+    );
+  }
+
 
   Future<void> _handleSearch(String query) async {
     if (query.trim().isEmpty) return;
@@ -112,8 +81,7 @@ class _LocationSearchScreenState extends State<LocationSearchScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final metadata = {} /* TODO: Replace with new API */;
-    final savedAddress = metadata?['location_address'] as String?;
+    final savedAddress = _savedAddress;
     final hasSavedAddress = savedAddress != null && savedAddress.isNotEmpty;
 
     return Scaffold(

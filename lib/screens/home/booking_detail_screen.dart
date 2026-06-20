@@ -5,7 +5,11 @@ import '../../core/constants.dart';
 import '../../services/api_service.dart';
 import 'package:animate_do/animate_do.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'cancel_booking_screen.dart';
+import '../studio/report_screen.dart';
+import '../../models/listing_model.dart';
+import '../bookings/customer_confirm_delivery_screen.dart';
 
 class BookingDetailScreen extends StatefulWidget {
   final Map<String, dynamic> booking;
@@ -62,6 +66,7 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
     status = status.toLowerCase();
     if (status == 'canceled' || status == 'cancelled') {
       return Container(
+        width: double.infinity,
         padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
           color: Colors.red.withOpacity(0.1),
@@ -69,25 +74,33 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
           border: Border.all(color: Colors.red.withOpacity(0.3)),
         ),
         child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             const Icon(Icons.cancel, color: Colors.red, size: 48),
             const SizedBox(height: 12),
-            const Text('Booking Cancelled', style: TextStyle(color: Colors.red, fontSize: 20, fontWeight: FontWeight.bold)),
+            const Text('Booking Cancelled', textAlign: TextAlign.center, style: TextStyle(color: Colors.red, fontSize: 20, fontWeight: FontWeight.bold)),
             const SizedBox(height: 8),
-            const Text('This booking has been successfully cancelled.', style: TextStyle(color: Colors.white70, fontSize: 12)),
-            const SizedBox(height: 4),
-            Text('Order ID: #Z01-${_bookingDetail?['id'] ?? '0000'}', style: const TextStyle(color: Colors.white38, fontSize: 11)),
+            const Text('This booking has been successfully cancelled.', textAlign: TextAlign.center, style: TextStyle(color: Colors.white70, fontSize: 13, height: 1.4)),
+            const SizedBox(height: 8),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              decoration: BoxDecoration(
+                color: Colors.red.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Text('Order ID: #Z01-${_bookingDetail?['id'] ?? '0000'}', style: const TextStyle(color: Colors.redAccent, fontSize: 11, fontWeight: FontWeight.bold)),
+            ),
           ],
         ),
       );
     }
 
     int currentIndex = 0;
-    if (status == 'packed') currentIndex = 1;
-    if (status == 'ready') currentIndex = 2;
-    if (status == 'returned' || status == 'completed') currentIndex = 3;
+    if (status == 'ongoing' || status == 'active' || status == 'in_progress' || status == 'started') currentIndex = 1;
+    if (status == 'completed' || status == 'returned' || status == 'delivered') currentIndex = 2;
 
-    final steps = ['Confirmed', 'Packed', 'Ready', 'Returned'];
+    final steps = ['Upcoming', 'Ongoing', 'Completed'];
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -100,7 +113,7 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
         children: [
           const Text('Order ID', style: TextStyle(color: Colors.white70, fontSize: 12)),
           const SizedBox(height: 4),
-          Text('#Z01-${_bookingDetail?['id'] ?? '0000'}', style: const TextStyle(color: Color(0xFFBA68C8), fontSize: 24, fontWeight: FontWeight.bold)),
+          Text('#Z01-${_bookingDetail?['id'] ?? '0000'}', style: const TextStyle(color: Color(0xFFCA9AFF), fontSize: 24, fontWeight: FontWeight.bold)),
           const SizedBox(height: 20),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -112,7 +125,7 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
                     Icon(
                       Icons.circle,
                       size: 12,
-                      color: isActive ? const Color(0xFFBA68C8) : Colors.white24,
+                      color: isActive ? const Color(0xFFCA9AFF) : Colors.white24,
                     ),
                     const SizedBox(height: 4),
                     Text(
@@ -148,6 +161,9 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
     }
     
     final totalPrice = double.tryParse(booking['total_amount']?.toString() ?? '0') ?? 0.0;
+    final securityDeposit = double.tryParse(booking['deposit_amount']?.toString() ?? '0') ?? 0.0;
+    final platformFee = securityDeposit * 0.10;
+    final numberFormat = NumberFormat('#,##0', 'en_IN');
     
     // Assuming we have items array or we use listing name
     final List<dynamic> items = booking['items'] as List? ?? [];
@@ -168,7 +184,7 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
         ),
       ),
       body: _isLoading 
-        ? const Center(child: CircularProgressIndicator(color: Color(0xFFBA68C8)))
+        ? const Center(child: CircularProgressIndicator(color: Color(0xFFCA9AFF)))
         : SingleChildScrollView(
         padding: const EdgeInsets.symmetric(horizontal: 20),
         child: Column(
@@ -214,9 +230,9 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
               child: Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  gradient: const LinearGradient(colors: [Color(0xFFBA68C8), Color(0xFF9C27B0)], begin: Alignment.topLeft, end: Alignment.bottomRight),
+                  gradient: const LinearGradient(colors: [Color(0xFFCA9AFF), Color(0xFF9C27B0)], begin: Alignment.topLeft, end: Alignment.bottomRight),
                   borderRadius: BorderRadius.circular(20),
-                  boxShadow: [BoxShadow(color: const Color(0xFFBA68C8).withOpacity(0.3), blurRadius: 15, offset: const Offset(0, 5))],
+                  boxShadow: [BoxShadow(color: const Color(0xFFCA9AFF).withOpacity(0.3), blurRadius: 15, offset: const Offset(0, 5))],
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -259,8 +275,8 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
                       child: GoogleMap(
                           initialCameraPosition: CameraPosition(
                             target: LatLng(
-                              double.tryParse(booking['latitude']?.toString() ?? '') ?? 12.9716, 
-                              double.tryParse(booking['longitude']?.toString() ?? '') ?? 77.5946
+                              double.tryParse(booking['latitude']?.toString() ?? booking['location_lat']?.toString() ?? '') ?? 12.9716, 
+                              double.tryParse(booking['longitude']?.toString() ?? booking['location_lng']?.toString() ?? '') ?? 77.5946
                             ),
                             zoom: 14,
                           ),
@@ -268,8 +284,8 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
                             Marker(
                               markerId: const MarkerId('vendor_location'),
                               position: LatLng(
-                                double.tryParse(booking['latitude']?.toString() ?? '') ?? 12.9716, 
-                                double.tryParse(booking['longitude']?.toString() ?? '') ?? 77.5946
+                                double.tryParse(booking['latitude']?.toString() ?? booking['location_lat']?.toString() ?? '') ?? 12.9716, 
+                                double.tryParse(booking['longitude']?.toString() ?? booking['location_lng']?.toString() ?? '') ?? 77.5946
                               ),
                             )
                           },
@@ -293,7 +309,20 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
                           ),
                         ),
                         TextButton(
-                          onPressed: () {},
+                          onPressed: () async {
+                            final lat = booking['latitude']?.toString() ?? booking['location_lat']?.toString() ?? '12.9716';
+                            final lng = booking['longitude']?.toString() ?? booking['location_lng']?.toString() ?? '77.5946';
+                            final url = Uri.parse('https://www.google.com/maps/search/?api=1&query=$lat,$lng');
+                            if (await canLaunchUrl(url)) {
+                              await launchUrl(url, mode: LaunchMode.externalApplication);
+                            } else {
+                              if (context.mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(content: Text('Could not open maps.')),
+                                );
+                              }
+                            }
+                          },
                           child: const Row(
                             children: [
                               Text('Direction ', style: TextStyle(color: Colors.blueAccent, fontSize: 12, fontWeight: FontWeight.bold)),
@@ -333,10 +362,32 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
                         ],
                       ),
                     ),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                      decoration: BoxDecoration(color: Colors.white.withOpacity(0.1), borderRadius: BorderRadius.circular(20)),
-                      child: const Text('Report', style: TextStyle(color: Colors.white54, fontSize: 12)),
+                    GestureDetector(
+                      onTap: () {
+                        final dummyListing = ListingModel(
+                          id: booking['listing_id']?.toString() ?? booking['id']?.toString() ?? '',
+                          vendorId: booking['vendor_id']?.toString() ?? '',
+                          listingTitle: booking['listing_name']?.toString() ?? 'Listing',
+                          category: booking['listing_type']?.toString() ?? 'Service',
+                          subCategory: '',
+                          amenities: [],
+                          images: [(booking['image_1'] ?? booking['listing_image'] ?? '').toString()],
+                          status: 'active',
+                          avgRating: 0.0,
+                          vendorName: booking['vendor_company_name']?.toString() ?? booking['vendor_contact_person']?.toString() ?? 'Vendor',
+                        );
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => ReportScreen(studio: dummyListing),
+                          ),
+                        );
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                        decoration: BoxDecoration(color: Colors.white.withOpacity(0.1), borderRadius: BorderRadius.circular(20)),
+                        child: const Text('Report', style: TextStyle(color: Colors.white54, fontSize: 12, decoration: TextDecoration.none)),
+                      ),
                     ),
                   ],
                 ),
@@ -380,14 +431,13 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
                       ),
                     ),
                     const SizedBox(height: 16),
-                    _buildPaymentRow('Total MRP', '₹${totalPrice.toStringAsFixed(0)}'),
-                    _buildPaymentRow('Discount on MRP', '-₹798', isDiscount: true),
-                    _buildPaymentRow('Platform Fee', '₹10'),
+                    _buildPaymentRow('Total MRP', '₹${numberFormat.format(totalPrice)}'),
+                    _buildPaymentRow('Platform Fee (10%)', '₹${numberFormat.format(platformFee)}'),
                     const SizedBox(height: 12),
-                    _buildPaymentRow('Rental Total', '₹${(totalPrice - 798 + 10).toStringAsFixed(0)}'),
-                    _buildPaymentRow('Security Deposit', '₹3,000'),
+                    _buildPaymentRow('Rental Total', '₹${numberFormat.format(totalPrice)}'),
+                    _buildPaymentRow('Security Deposit', '₹${numberFormat.format(securityDeposit)}'),
                     const Divider(height: 32, color: Colors.white10),
-                    _buildPaymentRow('Total Amount', '₹${(totalPrice - 798 + 10 + 3000).toStringAsFixed(0)}', isTotal: true),
+                    _buildPaymentRow('Total Amount', '₹${numberFormat.format(totalPrice + platformFee + securityDeposit)}', isTotal: true),
                   ],
                 ),
               ),
@@ -396,44 +446,80 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
           ],
         ),
       ),
-      bottomNavigationBar: (status.toLowerCase() != 'canceled' && status.toLowerCase() != 'cancelled' && status.toLowerCase() != 'completed' && status.toLowerCase() != 'returned')
-          ? Container(
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: const Color(0xFF1E1E1E),
-                border: Border(top: BorderSide(color: Colors.white.withOpacity(0.1))),
-              ),
-              child: ElevatedButton(
-                onPressed: () async {
-                  final result = await Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => CancelBookingScreen(booking: booking),
-                    ),
-                  );
-                  if (result == true) {
-                    if (context.mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Booking successfully canceled.')),
-                      );
-                      Navigator.pop(context, true); // Pop out of detail screen
-                    }
-                  }
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFFBA68C8),
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
+      bottomNavigationBar: () {
+        final s = status.toLowerCase();
+        if (s == 'delivered') {
+          return Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: const Color(0xFF1E1E1E),
+              border: Border(top: BorderSide(color: Colors.white.withOpacity(0.1))),
+            ),
+            child: ElevatedButton(
+              onPressed: () async {
+                final result = await Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => CustomerConfirmDeliveryScreen(booking: booking),
                   ),
-                ),
-                child: const Text(
-                  'Cancel Booking',
-                  style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+                );
+                if (result == true) {
+                  _fetchData();
+                }
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFFCA9AFF),
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
                 ),
               ),
-            )
-          : null,
+              child: const Text(
+                'Confirm Delivery',
+                style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+              ),
+            ),
+          );
+        } else if (s != 'canceled' && s != 'cancelled' && s != 'completed' && s != 'returned') {
+          return Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: const Color(0xFF1E1E1E),
+              border: Border(top: BorderSide(color: Colors.white.withOpacity(0.1))),
+            ),
+            child: ElevatedButton(
+              onPressed: () async {
+                final result = await Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => CancelBookingScreen(booking: booking),
+                  ),
+                );
+                if (result == true) {
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Booking successfully canceled.')),
+                    );
+                    Navigator.pop(context, true); // Pop out of detail screen
+                  }
+                }
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFFCA9AFF),
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+              child: const Text(
+                'Cancel Booking',
+                style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+              ),
+            ),
+          );
+        }
+        return null;
+      }(),
     );
   }
 
@@ -519,7 +605,7 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
             children: [
                Container(
                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                 decoration: BoxDecoration(color: const Color(0xFFBA68C8), borderRadius: BorderRadius.circular(10)),
+                 decoration: BoxDecoration(color: const Color(0xFFCA9AFF), borderRadius: BorderRadius.circular(10)),
                  child: Text('₹${price.toStringAsFixed(0)}/day', style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)),
                )
             ],
@@ -536,7 +622,7 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Expanded(child: Text(name, style: const TextStyle(color: Colors.white70, fontSize: 14))),
-          Text(quantity, style: const TextStyle(color: Color(0xFFBA68C8), fontSize: 14, fontWeight: FontWeight.bold)),
+          Text(quantity, style: const TextStyle(color: Color(0xFFCA9AFF), fontSize: 14, fontWeight: FontWeight.bold)),
         ],
       ),
     );
@@ -560,7 +646,7 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
       children: [
         Column(
           children: [
-            Icon(Icons.circle, color: isPickUp ? const Color(0xFFBA68C8) : Colors.white24, size: 10),
+            Icon(Icons.circle, color: isPickUp ? const Color(0xFFCA9AFF) : Colors.white24, size: 10),
             if (isPickUp) Container(width: 1, height: 20, color: Colors.white10),
           ],
         ),
@@ -598,7 +684,7 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
                 ),
             ],
           ),
-          Text(value, style: TextStyle(color: isTotal ? const Color(0xFFBA68C8) : isDiscount ? Colors.green : Colors.white70, fontSize: isTotal ? 20 : 14, fontWeight: isTotal ? FontWeight.w900 : FontWeight.bold)),
+          Text(value, style: TextStyle(color: isTotal ? const Color(0xFFCA9AFF) : isDiscount ? Colors.green : Colors.white70, fontSize: isTotal ? 20 : 14, fontWeight: isTotal ? FontWeight.w900 : FontWeight.bold)),
         ],
       ),
     );

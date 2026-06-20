@@ -6,6 +6,7 @@ import 'package:geocoding/geocoding.dart';
 import '../../core/constants.dart';
 import 'package:animate_do/animate_do.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../../services/api_service.dart';
 import 'address_details_screen.dart';
 import 'home_screen.dart';
 
@@ -47,19 +48,25 @@ class _LocationMapScreenState extends State<LocationMapScreen> {
       await Future.delayed(const Duration(milliseconds: 500));
     }
     if (mounted) {
-      setState(() {
-        _isMapReady = true;
-      });
       if (widget.initialLat != null && widget.initialLng != null) {
+        setState(() {
+          _isMapReady = true;
+          _isLoading = false;
+        });
         _getAddressFromLatLng(_currentPosition);
-        setState(() => _isLoading = false);
       } else {
-        _getCurrentLocation();
+        await _getCurrentLocation();
+        if (mounted) {
+          setState(() {
+            _isMapReady = true;
+          });
+        }
       }
     }
   }
 
   Future<void> _getCurrentLocation() async {
+    if (mounted) setState(() => _isLoading = true);
     try {
       bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
       if (!serviceEnabled) {
@@ -134,17 +141,21 @@ class _LocationMapScreenState extends State<LocationMapScreen> {
       await prefs.setDouble('location_lat', _currentPosition.latitude);
       await prefs.setDouble('location_lng', _currentPosition.longitude);
 
+      final userId = prefs.getString('user_id');
+      if (userId != null) {
+        await ApiService.updateLocation(
+          userId, 
+          _currentAddress, 
+          _currentPosition.latitude, 
+          _currentPosition.longitude,
+        );
+      }
+
       if (mounted) {
-        Navigator.push(
+        Navigator.pushAndRemoveUntil(
           context,
-          MaterialPageRoute(
-            builder: (_) => AddressDetailsScreen(
-              mapAddress: _currentAddress,
-              locality: _currentLocality,
-              lat: _currentPosition.latitude,
-              lng: _currentPosition.longitude,
-            ),
-          ),
+          MaterialPageRoute(builder: (_) => const HomeScreen()),
+          (route) => false,
         );
       }
     } catch (e) {
@@ -259,10 +270,12 @@ class _LocationMapScreenState extends State<LocationMapScreen> {
             bottom: 200,
             right: AppConstants.padding,
             child: FloatingActionButton.extended(
-              onPressed: _getCurrentLocation,
+              onPressed: _isLoading ? null : _getCurrentLocation,
               backgroundColor: AppColors.surface,
-              icon: const Icon(Icons.my_location, color: AppColors.primary),
-              label: const Text('Current location', style: TextStyle(color: Colors.white)),
+              icon: _isLoading 
+                  ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.primary))
+                  : const Icon(Icons.my_location, color: AppColors.primary),
+              label: Text(_isLoading ? 'Locating...' : 'Current location', style: const TextStyle(color: Colors.white)),
             ),
           ),
 

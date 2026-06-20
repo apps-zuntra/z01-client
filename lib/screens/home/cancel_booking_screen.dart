@@ -138,7 +138,7 @@ class _CancelBookingScreenState extends State<CancelBookingScreen> {
                       children: [
                          Container(
                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                           decoration: BoxDecoration(color: const Color(0xFFBA68C8), borderRadius: BorderRadius.circular(10)),
+                           decoration: BoxDecoration(color: const Color(0xFFCA9AFF), borderRadius: BorderRadius.circular(10)),
                            child: Text('₹${totalPrice.toStringAsFixed(0)}/day', style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)),
                          )
                       ],
@@ -269,10 +269,10 @@ class _CancelBookingScreenState extends State<CancelBookingScreen> {
                       onPressed: () => Navigator.pop(context),
                       style: OutlinedButton.styleFrom(
                         padding: const EdgeInsets.symmetric(vertical: 16),
-                        side: const BorderSide(color: Color(0xFFBA68C8)),
+                        side: const BorderSide(color: Color(0xFFCA9AFF)),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                       ),
-                      child: const Text('Keep Booking', style: TextStyle(color: Color(0xFFBA68C8), fontWeight: FontWeight.bold)),
+                      child: const Text('Keep Booking', style: TextStyle(color: Color(0xFFCA9AFF), fontWeight: FontWeight.bold)),
                     ),
                   ),
                   const SizedBox(width: 16),
@@ -281,7 +281,7 @@ class _CancelBookingScreenState extends State<CancelBookingScreen> {
                       onPressed: _isCanceling ? null : _cancelBooking,
                       style: ElevatedButton.styleFrom(
                         padding: const EdgeInsets.symmetric(vertical: 16),
-                        backgroundColor: const Color(0xFFBA68C8),
+                        backgroundColor: const Color(0xFFCA9AFF),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                       ),
                       child: _isCanceling 

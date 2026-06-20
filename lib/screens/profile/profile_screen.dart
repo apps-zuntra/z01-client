@@ -7,7 +7,9 @@ import 'super_coins_screen.dart';
 import 'notification_settings_screen.dart';
 import 'faq_screen.dart';
 import 'package:animate_do/animate_do.dart';
-import '../auth/login_screen.dart';
+import '../auth/welcome_screen.dart';
+import 'kyc_screen.dart';
+import 'wishlist_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -56,7 +58,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         ),
       ),
       body: _isLoading 
-          ? const Center(child: CircularProgressIndicator(color: Color(0xFFBA68C8)))
+          ? const Center(child: CircularProgressIndicator(color: Color(0xFFCA9AFF)))
           : SingleChildScrollView(
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: Column(
@@ -101,6 +103,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   ),
                   _buildMenuItem(
                     context,
+                    Icons.verified_user_outlined,
+                    'KYC Verification',
+                    () => Navigator.push(context, MaterialPageRoute(builder: (_) => const KYCVerificationScreen())),
+                  ),
+
+                  _buildMenuItem(
+                    context,
+                    Icons.favorite_outline,
+                    'Wishlist',
+                    () => Navigator.push(context, MaterialPageRoute(builder: (_) => const WishlistScreen())),
+                  ),
+                  _buildMenuItem(
+                    context,
                     Icons.stars_outlined,
                     'Super Coins',
                     () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SuperCoinsScreen())),
@@ -117,7 +132,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     'FAQ',
                     () => Navigator.push(context, MaterialPageRoute(builder: (_) => const FAQScreen())),
                   ),
-                  _buildMenuItem(context, Icons.description_outlined, 'Terms of Service', () {}),
+
                   _buildMenuItem(context, Icons.privacy_tip_outlined, 'Privacy Policy', () {}),
                   
                   const SizedBox(height: 40),
@@ -133,15 +148,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           if (context.mounted) {
                             Navigator.pushAndRemoveUntil(
                               context,
-                              MaterialPageRoute(builder: (_) => const LoginScreen()),
+                              MaterialPageRoute(builder: (_) => const WelcomeScreen()),
                               (route) => false,
                             );
                           }
                         },
                         style: ElevatedButton.styleFrom(
                           backgroundColor: const Color(0xFF311B92).withOpacity(0.3),
-                          foregroundColor: const Color(0xFFBA68C8),
-                          side: const BorderSide(color: Color(0xFFBA68C8), width: 0.5),
+                          foregroundColor: const Color(0xFFCA9AFF),
+                          side: const BorderSide(color: Color(0xFFCA9AFF), width: 0.5),
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                           elevation: 0,
                         ),

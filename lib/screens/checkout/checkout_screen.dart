@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
-import 'package:animate_do/animate_do.dart';
 import '../../core/constants.dart';
 import '../../widgets/floating_navbar.dart';
 import '../../core/navigation.dart';
 import '../../services/api_service.dart';
 import '../../services/cart_service.dart';
+import 'payment_success_screen.dart';
 import 'dart:async';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:razorpay_flutter/razorpay_flutter.dart';
 
 class CheckoutScreen extends StatefulWidget {
   final List<Map<String, dynamic>> items;
@@ -20,10 +22,112 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   Timer? _timer;
   int _secondsRemaining = 300; // 5 minutes
 
+  // Selected filters loaded from home screen
+  DateTime? _sharedFilterDate;
+  int? _sharedFilterCount;
+  String? _sharedFilterRentalType;
+
+  bool _isProcessingPayment = false;
+  late Razorpay _razorpay;
+
   @override
   void initState() {
     super.initState();
     _startTimer();
+    _loadFilters();
+    _razorpay = Razorpay();
+    _razorpay.on(Razorpay.EVENT_PAYMENT_SUCCESS, _handlePaymentSuccess);
+    _razorpay.on(Razorpay.EVENT_PAYMENT_ERROR, _handlePaymentError);
+    _razorpay.on(Razorpay.EVENT_EXTERNAL_WALLET, _handleExternalWallet);
+  }
+
+  void _handlePaymentSuccess(PaymentSuccessResponse response) async {
+    try {
+      final verificationResult = await ApiService.verifyPayment({
+        'razorpay_order_id': response.orderId,
+        'razorpay_payment_id': response.paymentId,
+        'razorpay_signature': response.signature,
+      });
+
+      if (verificationResult['success'] == true) {
+        await CartService.clearCart();
+        if (mounted) {
+          setState(() => _isProcessingPayment = false);
+
+          double totalMRP = 0;
+          for (var item in widget.items) {
+            final priceValue = item['price'] ?? item['price_per_day'] ?? item['price_per_hour'] ?? 0;
+            final double doublePrice = (priceValue is num) ? priceValue.toDouble() : (double.tryParse(priceValue.toString()) ?? 0.0);
+            totalMRP += doublePrice * (item['quantity'] ?? 1);
+          }
+
+          double securityDeposit = widget.items.fold(0.0, (sum, item) {
+            final dep = item['deposit_amount'];
+            final val = (dep is num) ? dep.toDouble() : (double.tryParse(dep?.toString() ?? '0') ?? 0.0);
+            return sum + (val * (item['quantity'] ?? 1));
+          });
+          
+          double platformFee = securityDeposit * 0.10;
+          double totalAmountPaid = securityDeposit + platformFee;
+
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+              builder: (context) => PaymentSuccessScreen(
+                orderReference: response.orderId ?? 'Z01-ORDER',
+                pickupDate: _sharedFilterDate ?? DateTime.now().add(const Duration(days: 1)),
+                remainingAmount: totalMRP,
+                securityDeposit: securityDeposit,
+                totalPaid: totalAmountPaid,
+              ),
+            ),
+          );
+        }
+      } else {
+        throw verificationResult['error'] ?? 'Verification failed on server';
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isProcessingPayment = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Payment verification failed: $e')),
+        );
+      }
+    }
+  }
+
+  void _handlePaymentError(PaymentFailureResponse response) {
+    if (mounted) {
+      setState(() => _isProcessingPayment = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Payment failed: ${response.message}')),
+      );
+    }
+  }
+
+  void _handleExternalWallet(ExternalWalletResponse response) {
+    if (mounted) {
+      setState(() => _isProcessingPayment = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('External Wallet selected: ${response.walletName}')),
+      );
+    }
+  }
+
+  Future<void> _loadFilters() async {
+    final prefs = await SharedPreferences.getInstance();
+    final dateStr = prefs.getString('filter_date');
+    final countVal = prefs.getInt('filter_count');
+    final rentalTypeVal = prefs.getString('filter_rental_type');
+    if (mounted) {
+      setState(() {
+        if (dateStr != null) {
+          _sharedFilterDate = DateTime.tryParse(dateStr);
+        }
+        _sharedFilterCount = countVal;
+        _sharedFilterRentalType = rentalTypeVal;
+      });
+    }
   }
 
   void _startTimer() {
@@ -66,7 +170,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFFBA68C8),
+              backgroundColor: const Color(0xFFCA9AFF),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
             ),
             onPressed: () {
@@ -93,6 +197,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   @override
   void dispose() {
     _timer?.cancel();
+    _razorpay.clear();
     super.dispose();
   }
 
@@ -106,15 +211,20 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   Widget build(BuildContext context) {
     double totalMRP = 0;
     for (var item in widget.items) {
-      final priceValue = item['price'] ?? 0;
-      totalMRP += (priceValue is num) ? priceValue : (double.tryParse(priceValue.toString()) ?? 0);
+      final priceValue = item['price'] ?? item['price_per_day'] ?? item['price_per_hour'] ?? 0;
+      final double doublePrice = (priceValue is num) ? priceValue.toDouble() : (double.tryParse(priceValue.toString()) ?? 0.0);
+      totalMRP += doublePrice * (item['quantity'] ?? 1);
     }
 
-    double discount = totalMRP * 0.06;
-    double platformFee = 10;
-    double rentalTotal = totalMRP - discount + platformFee;
-    double securityDeposit = 3000;
-    double totalAmount = platformFee + securityDeposit; // Payable now
+    // Dynamically sum security deposits from items
+    double securityDeposit = widget.items.fold(0.0, (sum, item) {
+      final dep = item['deposit_amount'];
+      final val = (dep is num) ? dep.toDouble() : (double.tryParse(dep?.toString() ?? '0') ?? 0.0);
+      return sum + (val * (item['quantity'] ?? 1));
+    });
+
+    double platformFee = securityDeposit * 0.10; // 10% of security deposit
+    double totalAmount = securityDeposit + platformFee; // Payable now strictly security deposit + platform fee
 
     return Scaffold(
       backgroundColor: const Color(0xFF121212),
@@ -138,22 +248,23 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                 Center(
                   child: Text(
                     'Complete your booking in ${_formatTime(_secondsRemaining)} mins',
-                    style: const TextStyle(color: Color(0xFFBA68C8), fontSize: 12, fontWeight: FontWeight.w600),
+                    style: const TextStyle(color: Color(0xFFCA9AFF), fontSize: 12, fontWeight: FontWeight.w600),
                   ),
                 ),
                 const SizedBox(height: 24),
-                _buildOrderSummaryCard(totalMRP, discount, platformFee, rentalTotal, securityDeposit, totalAmount),
+                _buildOrderSummaryCard(totalMRP, platformFee, securityDeposit, totalAmount),
+                _buildPickupWarningCard(totalMRP, securityDeposit),
                 const SizedBox(height: 32),
                 _buildSectionHeader('Credit & Debit Cards'),
                 const SizedBox(height: 16),
-                _buildPaymentOption(0, 'ICCI Bank Card **** 3006', Icons.credit_card, isVisa: true),
-                _buildAddOption('Add New Card'),
+                _buildAddOption(0, 'Add New Card', Icons.credit_card),
                 const SizedBox(height: 32),
                 _buildSectionHeader('Pay by apps & UPI'),
                 const SizedBox(height: 16),
                 _buildUPIMethod(1, 'Google pay', 'https://img.icons8.com/color/48/google-pay.png', Icons.account_balance_wallet, color: Colors.blue),
                 _buildUPIMethod(2, 'Paytm', 'https://img.icons8.com/color/48/paytm.png', Icons.account_balance_wallet, color: Colors.lightBlue),
-                _buildAddOption('Add New UPI'),
+                _buildUPIMethod(3, 'PhonePe', 'https://img.icons8.com/color/48/phonepe.png', Icons.account_balance_wallet, color: const Color(0xFFCA9AFF)),
+                _buildAddOption(4, 'Add New UPI', Icons.add),
                 const SizedBox(height: 180),
               ],
             ),
@@ -162,37 +273,48 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
             left: 20,
             right: 20,
             bottom: 100,
-            child: FadeInUp(
-              child: Container(
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(16),
-                  boxShadow: [
-                    BoxShadow(
-                      color: const Color(0xFFBA68C8).withOpacity(0.3),
-                      blurRadius: 20,
-                      offset: const Offset(0, 10),
+            child: Container(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: [
+                  BoxShadow(
+                    color: const Color(0xFFCA9AFF).withOpacity(0.3),
+                    blurRadius: 20,
+                    offset: const Offset(0, 10),
+                  ),
+                ],
+              ),
+              child: ElevatedButton(
+                onPressed: _isProcessingPayment ? null : () {
+                  String method = _selectedPaymentIndex == 0 ? 'card' : 'upi';
+                  _processPayment(method: method);
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFFCA9AFF),
+                  foregroundColor: Colors.white,
+                  minimumSize: const Size(double.infinity, 56),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  elevation: 0,
+                  disabledBackgroundColor: const Color(0xFFCA9AFF).withOpacity(0.6),
+                ),
+                child: _isProcessingPayment
+                  ? const SizedBox(
+                      width: 24,
+                      height: 24,
+                      child: CircularProgressIndicator(
+                        color: Colors.white,
+                        strokeWidth: 2,
+                      ),
+                    )
+                  : Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(Icons.lock_outline, size: 18),
+                        const SizedBox(width: 8),
+                        Text('Secure Payment ₹${totalAmount.toStringAsFixed(0)}',
+                            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                      ],
                     ),
-                  ],
-                ),
-                child: ElevatedButton(
-                  onPressed: () => _showPaymentProcessing(context, totalAmount),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFFBA68C8),
-                    foregroundColor: Colors.white,
-                    minimumSize: const Size(double.infinity, 56),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                    elevation: 0,
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const Icon(Icons.lock_outline, size: 18),
-                      const SizedBox(width: 8),
-                      Text('Secure Payment ₹${totalAmount.toStringAsFixed(0)}',
-                          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                    ],
-                  ),
-                ),
               ),
             ),
           ),
@@ -201,57 +323,87 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     );
   }
 
-  void _showPaymentProcessing(BuildContext context, double totalAmount) {
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: const Color(0xFF1E1E1E),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const CircularProgressIndicator(color: Color(0xFFBA68C8)),
-            const SizedBox(height: 24),
-            const Text('Processing Payment...', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 8),
-            Text('Please do not close the app', style: TextStyle(color: Colors.white.withOpacity(0.6), fontSize: 12)),
-          ],
-        ),
-      ),
-    );
-    
-    Future.delayed(const Duration(seconds: 2), () async {
-      bool allSuccessful = true;
-      
-      // Create bookings in backend
+  Future<void> _processPayment({String? method}) async {
+    setState(() {
+      _isProcessingPayment = true;
+    });
+
+    try {
+      bool allSuccess = true;
       for (var item in widget.items) {
-        final price = item['price'] ?? 0;
+        final listingId = item['id'] ?? item['listing_id'] ?? item['cart_item_id'];
+        final priceValue = item['price'] ?? item['price_per_day'] ?? item['price_per_hour'] ?? 0;
+        final double doublePrice = (priceValue is num) ? priceValue.toDouble() : (double.tryParse(priceValue.toString()) ?? 0.0);
+        final int qty = item['quantity'] ?? 1;
+        final double itemTotal = doublePrice * qty;
+
+        // Since cart items don't have explicit dates, generate default dates for the booking
+        final startDate = DateTime.now().add(const Duration(days: 1));
+        final endDate = startDate.add(const Duration(days: 3));
+
         final success = await ApiService.createBooking({
-          'listing_id': item['id'],
-          'start_date': DateTime.now().add(const Duration(days: 7)).toIso8601String(),
-          'end_date': DateTime.now().add(const Duration(days: 8)).toIso8601String(),
-          'total_amount': (price is num) ? price : (double.tryParse(price.toString()) ?? 0),
-          'status': 'confirmed'
+          'listing_id': listingId,
+          'start_date': startDate.toIso8601String(),
+          'end_date': endDate.toIso8601String(),
+          'total_amount': itemTotal,
+          'status': 'pending',
+          'deposit_amount': (double.tryParse(item['deposit_amount']?.toString() ?? '0') ?? 0.0) * qty,
         });
-        
-        if (success) {
-          await CartService.removeFromCart(item);
-        } else {
-          allSuccessful = false;
+        if (!success) {
+          allSuccess = false;
         }
       }
+      
+      if (allSuccess) {
+        final bookings = await ApiService.getUserBookings();
+        if (bookings.isEmpty) throw 'No bookings found after creation';
+        
+        final latestBookings = bookings.take(widget.items.length);
+        final bookingIds = latestBookings.map((b) => b['id'].toString()).join(',');
 
-      if (mounted) {
-        Navigator.pop(context); // Close loading dialog
-        if (allSuccessful) {
-          _showSuccessDialog();
-        } else {
+        final orderResponse = await ApiService.createPaymentOrder(bookingIds);
+        if (orderResponse == null || !orderResponse['success']) {
+          throw 'Failed to create payment order';
+        }
+
+        var options = {
+          'key': 'rzp_live_SRoJY9zxg1WtPH',
+          'amount': orderResponse['amount'],
+          'name': 'Z01 Equipment',
+          'description': 'Deposit for Cart Items',
+          'order_id': orderResponse['orderId'],
+          'prefill': {
+            'contact': '',
+            'email': '',
+            if (method != null) 'method': method,
+          },
+          'theme': {
+            'color': '#BA68C8'
+          }
+        };
+
+        _razorpay.open(options);
+      } else {
+        if (mounted) {
+          setState(() {
+            _isProcessingPayment = false;
+          });
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Some bookings failed to create. Please check your internet.')),
+            const SnackBar(content: Text('Failed to process some items in your booking.')),
           );
         }
       }
-    });
+    } catch (e) {
+      print("Checkout error: $e");
+      if (mounted) {
+        setState(() {
+          _isProcessingPayment = false;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(e.toString())),
+        );
+      }
+    }
   }
 
   void _showSuccessDialog() {
@@ -284,11 +436,10 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
               child: ElevatedButton(
                 onPressed: () {
                   Navigator.pop(ctx);
-                  // Return to home and clear stack
                   Navigator.of(context).pushNamedAndRemoveUntil('/', (route) => false);
                 },
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFFBA68C8),
+                  backgroundColor: const Color(0xFFCA9AFF),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                 ),
                 child: const Text('Back to Home', style: TextStyle(color: Colors.white)),
@@ -300,13 +451,66 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     );
   }
 
-  Widget _buildOrderSummaryCard(double totalMRP, double discount, double platformFee, double rentalTotal, double securityDeposit, double totalAmount) {
+  Widget _buildPickupWarningCard(double rentalTotal, double securityDeposit) {
+    return Container(
+      margin: const EdgeInsets.only(top: 16),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xFF2C2442),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: const Color(0xFFCA9AFF).withOpacity(0.3), width: 1.2),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Icon(Icons.info_outline_rounded, color: Color(0xFFCA9AFF), size: 22),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Balance Payment',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                RichText(
+                  text: TextSpan(
+                    style: TextStyle(
+                      color: Colors.white.withOpacity(0.7),
+                      fontSize: 12,
+                      height: 1.45,
+                      fontFamily: 'Inter',
+                    ),
+                    children: [
+                      const TextSpan(text: 'The remaining rental balance of '),
+                      TextSpan(
+                        text: '₹${rentalTotal.toStringAsFixed(0)}',
+                        style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
+                      ),
+                      const TextSpan(text: ' is to be paid directly to the studio/ vendor at the time of pickup.'),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildOrderSummaryCard(double totalMRP, double platformFee, double securityDeposit, double totalAmount) {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: const Color(0xFF1E1E1E),
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: const Color(0xFF4FC3F7), width: 1.5),
+        border: Border.all(color: const Color(0xFFCA9AFF).withOpacity(0.2), width: 1.5),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -315,12 +519,10 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
               style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
           const SizedBox(height: 16),
           _buildSummaryRow('Total MRP', '₹${totalMRP.toStringAsFixed(0)}'),
-          _buildSummaryRow('Discount on MRP', '-₹${discount.toStringAsFixed(0)}', isDiscount: true),
           _buildSummaryRow('Platform Fee', '₹${platformFee.toStringAsFixed(0)}'),
           const Divider(color: Colors.white10, height: 24),
-          _buildSummaryRow('Rental Total', '₹${rentalTotal.toStringAsFixed(0)}', isBold: true),
-          _buildSummaryRow('Security Deposit', '₹${securityDeposit.toStringAsFixed(0)}', showInfo: true),
-          const SizedBox(height: 20),
+          _buildSummaryRow('Security Deposit', '₹${securityDeposit.toStringAsFixed(0)}', showInfo: true, isBold: true),
+          const Divider(color: Colors.white10, height: 24),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -334,7 +536,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                 ],
               ),
               Text('₹${totalAmount.toStringAsFixed(0)}',
-                  style: const TextStyle(color: Color(0xFFBA68C8), fontSize: 24, fontWeight: FontWeight.w900)),
+                  style: const TextStyle(color: Color(0xFFCA9AFF), fontSize: 24, fontWeight: FontWeight.w900)),
             ],
           ),
         ],
@@ -364,7 +566,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
           ),
           Text(value,
               style: TextStyle(
-                color: isDiscount ? Colors.greenAccent : Colors.white,
+                color: isDiscount ? const Color(0xFF2EC4B6) : Colors.white,
                 fontSize: 14,
                 fontWeight: isBold ? FontWeight.bold : FontWeight.w600,
               )),
@@ -374,41 +576,46 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   }
 
   Widget _buildSectionHeader(String title) {
-    return Align(
-      alignment: Alignment.centerLeft,
-      child: Text(
-        title,
-        style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+    return Text(
+      title,
+      style: const TextStyle(
+        fontSize: 16,
+        fontWeight: FontWeight.bold,
+        color: Colors.white,
       ),
     );
   }
 
-  Widget _buildPaymentOption(int index, String title, IconData icon, {bool isVisa = false}) {
-    bool isSelected = _selectedPaymentIndex == index;
+  Widget _buildAddOption(int index, String title, IconData icon) {
     return GestureDetector(
-      onTap: () => setState(() => _selectedPaymentIndex = index),
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 12),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        decoration: BoxDecoration(
-          color: isSelected ? Colors.white.withOpacity(0.05) : Colors.transparent,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: isSelected ? const Color(0xFFBA68C8).withOpacity(0.5) : Colors.transparent),
-        ),
+      onTap: () {
+        setState(() {
+          _selectedPaymentIndex = index;
+        });
+      },
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 8.0),
         child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Icon(icon, color: isVisa ? Colors.blue : Colors.white54, size: 24),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Text(
-                title,
-                style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w500),
-              ),
+            Row(
+              children: [
+                Icon(icon, color: const Color(0xFFCA9AFF), size: 24),
+                const SizedBox(width: 12),
+                Text(
+                  title,
+                  style: const TextStyle(
+                    color: Color(0xFFCA9AFF),
+                    fontSize: 15,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
             ),
             Icon(
-              isSelected ? Icons.radio_button_checked : Icons.radio_button_off,
-              color: isSelected ? const Color(0xFFBA68C8) : Colors.white24,
-              size: 20,
+              _selectedPaymentIndex == index ? Icons.radio_button_checked : Icons.radio_button_unchecked, 
+              color: _selectedPaymentIndex == index ? const Color(0xFFCA9AFF) : Colors.white54, 
+              size: 24,
             ),
           ],
         ),
@@ -416,65 +623,46 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     );
   }
 
-  Widget _buildUPIMethod(int index, String title, String logoUrl, IconData fallbackIcon, {Color? color}) {
-    bool isSelected = _selectedPaymentIndex == index;
+  Widget _buildUPIMethod(int index, String title, String iconUrl, IconData fallbackIcon, {Color color = Colors.white}) {
     return GestureDetector(
-      onTap: () => setState(() => _selectedPaymentIndex = index),
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 12),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        decoration: BoxDecoration(
-          color: isSelected ? Colors.white.withOpacity(0.05) : Colors.transparent,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: isSelected ? const Color(0xFFBA68C8).withOpacity(0.5) : Colors.transparent),
-        ),
+      onTap: () {
+        setState(() {
+          _selectedPaymentIndex = index;
+        });
+      },
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 12.0),
         child: Row(
           children: [
             Container(
               width: 32,
               height: 32,
               decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.1),
+                color: Colors.white,
                 borderRadius: BorderRadius.circular(8),
               ),
-              padding: const EdgeInsets.all(4),
-              child: Image.network(
-                logoUrl,
-                width: 24,
-                height: 24,
-                errorBuilder: (context, error, stackTrace) => Icon(fallbackIcon, color: color ?? Colors.white54, size: 20),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(8),
+                child: Image.network(
+                  iconUrl,
+                  errorBuilder: (context, error, stackTrace) => Icon(fallbackIcon, color: color, size: 20),
+                ),
               ),
             ),
             const SizedBox(width: 16),
             Expanded(
               child: Text(
                 title,
-                style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w500),
+                style: const TextStyle(color: Colors.white, fontSize: 16),
               ),
             ),
             Icon(
-              isSelected ? Icons.radio_button_checked : Icons.radio_button_off,
-              color: isSelected ? const Color(0xFFBA68C8) : Colors.white24,
-              size: 20,
+              _selectedPaymentIndex == index ? Icons.radio_button_checked : Icons.radio_button_unchecked, 
+              color: _selectedPaymentIndex == index ? const Color(0xFFCA9AFF) : Colors.white54, 
+              size: 24,
             ),
           ],
         ),
-      ),
-    );
-  }
-
-  Widget _buildAddOption(String title) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      child: Row(
-        children: [
-          const Icon(Icons.add, color: Color(0xFFBA68C8), size: 20),
-          const SizedBox(width: 12),
-          Text(
-            title,
-            style: const TextStyle(color: Color(0xFFBA68C8), fontWeight: FontWeight.bold, fontSize: 14),
-          ),
-        ],
       ),
     );
   }

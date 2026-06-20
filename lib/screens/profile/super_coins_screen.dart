@@ -41,7 +41,7 @@ class SuperCoinsScreen extends StatelessWidget {
                   ),
                   borderRadius: BorderRadius.circular(24),
                   boxShadow: [
-                    BoxShadow(color: Colors.deepPurpleAccent.withOpacity(0.2), blurRadius: 20, offset: const Offset(0, 10))
+                    BoxShadow(color: const Color(0xFFCA9AFF).withOpacity(0.2), blurRadius: 20, offset: const Offset(0, 10))
                   ],
                 ),
                 child: Column(
@@ -71,7 +71,7 @@ class SuperCoinsScreen extends StatelessWidget {
                           widthFactor: 0.6,
                           child: Container(
                             height: 6,
-                            decoration: BoxDecoration(color: const Color(0xFFBA68C8), borderRadius: BorderRadius.circular(3)),
+                            decoration: BoxDecoration(color: const Color(0xFFCA9AFF), borderRadius: BorderRadius.circular(3)),
                           ),
                         ),
                       ],
@@ -129,7 +129,7 @@ class SuperCoinsScreen extends StatelessWidget {
           ElevatedButton(
             onPressed: isUnlocked ? () {} : null,
             style: ElevatedButton.styleFrom(
-              backgroundColor: isUnlocked ? const Color(0xFFBA68C8) : Colors.white.withOpacity(0.1),
+              backgroundColor: isUnlocked ? const Color(0xFFCA9AFF) : Colors.white.withOpacity(0.1),
               foregroundColor: Colors.white,
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),

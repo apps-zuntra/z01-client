@@ -42,9 +42,9 @@ class _FAQScreenState extends State<FAQScreen> with SingleTickerProviderStateMix
         ),
         bottom: TabBar(
           controller: _tabController,
-          indicatorColor: const Color(0xFFBA68C8),
+          indicatorColor: const Color(0xFFCA9AFF),
           indicatorWeight: 3,
-          labelColor: const Color(0xFFBA68C8),
+          labelColor: const Color(0xFFCA9AFF),
           unselectedLabelColor: Colors.white54,
           labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
           dividerColor: Colors.white10,
@@ -72,9 +72,9 @@ class _FAQScreenState extends State<FAQScreen> with SingleTickerProviderStateMix
           child: ElevatedButton(
             onPressed: () {},
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFFBA68C8).withOpacity(0.3),
-              foregroundColor: const Color(0xFFBA68C8),
-              side: const BorderSide(color: Color(0xFFBA68C8), width: 0.5),
+              backgroundColor: const Color(0xFFCA9AFF).withOpacity(0.3),
+              foregroundColor: const Color(0xFFCA9AFF),
+              side: const BorderSide(color: Color(0xFFCA9AFF), width: 0.5),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
               elevation: 0,
             ),

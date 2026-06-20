@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../core/constants.dart';
 import 'package:animate_do/animate_do.dart';
 
@@ -15,6 +16,28 @@ class _NotificationSettingsScreenState extends State<NotificationSettingsScreen>
   bool rentalReminders = true;
   bool messages = true;
   bool reviews = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadSettings();
+  }
+
+  Future<void> _loadSettings() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      pauseAll = prefs.getBool('notif_pauseAll') ?? false;
+      bookingConfirmation = prefs.getBool('notif_bookingConfirmation') ?? true;
+      rentalReminders = prefs.getBool('notif_rentalReminders') ?? true;
+      messages = prefs.getBool('notif_messages') ?? true;
+      reviews = prefs.getBool('notif_reviews') ?? false;
+    });
+  }
+
+  Future<void> _saveSetting(String key, bool value) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(key, value);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -45,7 +68,10 @@ class _NotificationSettingsScreenState extends State<NotificationSettingsScreen>
               'Pause all notifications',
               'Temporarily mute push & email',
               pauseAll,
-              (val) => setState(() => pauseAll = val),
+              (val) {
+                setState(() => pauseAll = val);
+                _saveSetting('notif_pauseAll', val);
+              },
             ),
             
             const SizedBox(height: 32),
@@ -55,21 +81,30 @@ class _NotificationSettingsScreenState extends State<NotificationSettingsScreen>
               'Booking Confirmation',
               'New Requests and approvals',
               bookingConfirmation,
-              (val) => setState(() => bookingConfirmation = val),
+              (val) {
+                setState(() => bookingConfirmation = val);
+                _saveSetting('notif_bookingConfirmation', val);
+              },
             ),
             const SizedBox(height: 16),
             _buildSettingTile(
               'Rental Reminders',
               'Pick up and return alerts',
               rentalReminders,
-              (val) => setState(() => rentalReminders = val),
+              (val) {
+                setState(() => rentalReminders = val);
+                _saveSetting('notif_rentalReminders', val);
+              },
             ),
             const SizedBox(height: 16),
             _buildSettingTile(
               'Messages',
               'Chats from vendors and renters',
               messages,
-              (val) => setState(() => messages = val),
+              (val) {
+                setState(() => messages = val);
+                _saveSetting('notif_messages', val);
+              },
             ),
             
             const SizedBox(height: 32),
@@ -79,7 +114,10 @@ class _NotificationSettingsScreenState extends State<NotificationSettingsScreen>
               'Reviews & Feedback',
               'New Requests and approvals',
               reviews,
-              (val) => setState(() => reviews = val),
+              (val) {
+                setState(() => reviews = val);
+                _saveSetting('notif_reviews', val);
+              },
             ),
             
             const SizedBox(height: 80),
@@ -88,7 +126,7 @@ class _NotificationSettingsScreenState extends State<NotificationSettingsScreen>
                 width: double.infinity,
                 height: 54,
                 child: ElevatedButton(
-                  onPressed: () {
+                  onPressed: () async {
                     // Reset to defaults
                     setState(() {
                       pauseAll = false;
@@ -97,11 +135,16 @@ class _NotificationSettingsScreenState extends State<NotificationSettingsScreen>
                       messages = true;
                       reviews = false;
                     });
+                    await _saveSetting('notif_pauseAll', false);
+                    await _saveSetting('notif_bookingConfirmation', true);
+                    await _saveSetting('notif_rentalReminders', true);
+                    await _saveSetting('notif_messages', true);
+                    await _saveSetting('notif_reviews', false);
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF311B92).withOpacity(0.3),
-                    foregroundColor: const Color(0xFFBA68C8),
-                    side: const BorderSide(color: Color(0xFFBA68C8), width: 0.5),
+                    foregroundColor: const Color(0xFFCA9AFF),
+                    side: const BorderSide(color: Color(0xFFCA9AFF), width: 0.5),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                     elevation: 0,
                   ),
@@ -141,8 +184,8 @@ class _NotificationSettingsScreenState extends State<NotificationSettingsScreen>
           Switch(
             value: value,
             onChanged: onChanged,
-            activeColor: const Color(0xFFBA68C8),
-            activeTrackColor: const Color(0xFFBA68C8).withOpacity(0.3),
+            activeColor: const Color(0xFFCA9AFF),
+            activeTrackColor: const Color(0xFFCA9AFF).withOpacity(0.3),
             inactiveThumbColor: Colors.white54,
             inactiveTrackColor: Colors.white10,
           ),

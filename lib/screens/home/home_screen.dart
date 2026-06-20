@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../core/constants.dart';
+import '../../widgets/wishlist_button_widget.dart';
 import '../studio/studio_list_screen.dart';
 import '../equipment/equipment_list_screen.dart';
 import '../manpower/manpower_list_screen.dart';
@@ -17,7 +18,9 @@ import 'cart_screen.dart';
 import '../../services/api_service.dart';
 import '../../services/cart_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../models/listing_model.dart';
+import '../../widgets/booking_period_sheet.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -29,10 +32,18 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   int _selectedIndex = 0;
   int _currentBannerIndex = 0;
-  String _userLocationLocality = 'Tap to select location';
-  String _userLocationAddress = 'Fetching location...';
+  String _userLocationLocality = '';
+  String _userLocationAddress = '';
   List<ListingModel> _recommendedListings = [];
   bool _isLoadingRecommended = true;
+
+  // ── Filter state ──────────────────────────────────────────────
+  String _filterRentalType = 'Hourly'; // 'Hourly' | 'Daily'
+  String _filterCategory   = 'Studios'; // 'Studios' | 'Equipment' | 'Manpower'
+  int    _filterCount      = 4;          // hours or days
+  DateTime _filterDate     = DateTime.now();
+  String _filterTime       = '10:00';    // HH:mm
+  bool   _filterApplied    = false;
 
   @override
   void initState() {
@@ -40,9 +51,51 @@ class _HomeScreenState extends State<HomeScreen> {
     _checkLocation();
     _loadRecommendedListings();
     CartService.init();
+    _loadFiltersFromSharedPrefs();
     
     // Listen for tab switches from other screens
     AppNavigation.selectedTabIndex.addListener(_handleGlobalTabChange);
+  }
+
+  Future<void> _loadFiltersFromSharedPrefs() async {
+    final prefs = await SharedPreferences.getInstance();
+    final dateStr = prefs.getString('filter_date');
+    final countVal = prefs.getInt('filter_count');
+    final rentalTypeVal = prefs.getString('filter_rental_type');
+    final timeVal = prefs.getString('filter_time');
+    final categoryVal = prefs.getString('filter_category');
+    
+    if (mounted) {
+      setState(() {
+        if (dateStr != null) {
+          _filterDate = DateTime.tryParse(dateStr) ?? DateTime.now();
+        }
+        if (countVal != null) {
+          _filterCount = countVal;
+        }
+        if (rentalTypeVal != null) {
+          _filterRentalType = rentalTypeVal;
+        }
+        if (timeVal != null) {
+          _filterTime = timeVal;
+        }
+        if (categoryVal != null) {
+          _filterCategory = categoryVal;
+        }
+        if (dateStr != null || countVal != null || rentalTypeVal != null || timeVal != null || categoryVal != null) {
+          _filterApplied = true;
+        }
+      });
+    }
+  }
+
+  Future<void> _saveFiltersToSharedPrefs() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('filter_date', _filterDate.toIso8601String());
+    await prefs.setInt('filter_count', _filterCount);
+    await prefs.setString('filter_rental_type', _filterRentalType);
+    await prefs.setString('filter_time', _filterTime);
+    await prefs.setString('filter_category', _filterCategory);
   }
 
   void _handleGlobalTabChange() {
@@ -160,11 +213,11 @@ class _HomeScreenState extends State<HomeScreen> {
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFBA68C8),
+                    color: const Color(0xFFCA9AFF),
                     borderRadius: BorderRadius.circular(20),
                     boxShadow: [
                       BoxShadow(
-                        color: const Color(0xFFBA68C8).withOpacity(0.3),
+                        color: const Color(0xFFCA9AFF).withOpacity(0.3),
                         blurRadius: 15,
                         spreadRadius: 2,
                       )
@@ -224,6 +277,8 @@ class _HomeScreenState extends State<HomeScreen> {
               _buildHeader(),
               const SizedBox(height: 16),
               _buildSearchBar(),
+              const SizedBox(height: 12),
+              _buildFilterChips(),
               const SizedBox(height: 24),
               _buildPromoBanner(),
               const SizedBox(height: 32),
@@ -303,6 +358,170 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  // ── Filter Chips Row ─────────────────────────────────────────
+  Widget _buildFilterChips() {
+    final months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    final now = DateTime.now();
+    final isToday = _filterDate.day == now.day && _filterDate.month == now.month && _filterDate.year == now.year;
+    final dateLabel = isToday ? 'Today, ${_filterDate.day} ${months[_filterDate.month - 1]}' : '${_filterDate.day} ${months[_filterDate.month - 1]}';
+    
+    String formattedTime = _filterTime;
+    final hourParts = _filterTime.split(':');
+    if (hourParts.length == 2) {
+      final hh = int.tryParse(hourParts[0]) ?? 10;
+      final mm = int.tryParse(hourParts[1]) ?? 0;
+      final ampm = hh < 12 ? 'AM' : 'PM';
+      final h12 = hh % 12 == 0 ? 12 : hh % 12;
+      formattedTime = '$h12:${mm.toString().padLeft(2, '0')} $ampm';
+    }
+    
+    final timeLabel = '$formattedTime • $_filterCount ${_filterRentalType == 'Hourly' ? 'hrs' : 'days'}';
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: AppConstants.padding),
+      child: Row(
+        children: [
+          _filterChip(
+            icon: Icons.calendar_today_outlined,
+            label: dateLabel,
+            onTap: () => _showRentalDetailsSheet(context),
+          ),
+          const SizedBox(width: 10),
+          _filterChip(
+            icon: Icons.access_time_rounded,
+            label: timeLabel,
+            onTap: () => _showRentalDetailsSheet(context),
+          ),
+          const SizedBox(width: 10),
+          _filterChip(
+            icon: Icons.folder_open_outlined,
+            label: _filterCategory,
+            onTap: () => _showRentalDetailsSheet(context),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _filterChip({required IconData icon, required String label, required VoidCallback onTap}) {
+    return Expanded(
+      child: GestureDetector(
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 9, horizontal: 10),
+          decoration: BoxDecoration(
+            color: const Color(0xFF1E1E1E),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: _filterApplied ? const Color(0xFFCA9AFF).withOpacity(0.5) : Colors.white.withOpacity(0.06),
+            ),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icon, size: 13, color: _filterApplied ? const Color(0xFFCA9AFF) : Colors.white54),
+              const SizedBox(width: 5),
+              Flexible(
+                child: Text(
+                  label,
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    color: _filterApplied ? Colors.white : Colors.white70,
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  // ── Rental Details Bottom Sheet ───────────────────────────────
+  void _showRentalDetailsSheet(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) {
+        return BookingPeriodSheet(
+          title: 'Rental Details',
+          showCategorySelector: true,
+          initialRentalType: _filterRentalType,
+          initialCategory: _filterCategory,
+          initialCount: _filterCount,
+          initialDate: _filterDate,
+          initialTime: _filterTime,
+          buttonText: 'Confirm Booking Period',
+          onApply: (rentalType, category, count, date, time) async {
+            Navigator.pop(ctx);
+            // Apply filter back to home screen state
+            setState(() {
+              _filterRentalType = rentalType;
+              _filterCategory = category;
+              _filterCount = count;
+              _filterDate = date;
+              _filterTime = time;
+              _filterApplied = true;
+            });
+            await _saveFiltersToSharedPrefs();
+
+            // Navigate to the appropriate list screen
+            if (category == 'Equipment') {
+              Navigator.push(context, MaterialPageRoute(builder: (_) => const EquipmentListScreen()));
+            } else if (category == 'Manpower') {
+              Navigator.push(context, MaterialPageRoute(builder: (_) => const ManpowerListScreen()));
+            } else {
+              Navigator.push(context, MaterialPageRoute(builder: (_) => const StudioListScreen()));
+            }
+          },
+        );
+      },
+    );
+  }
+
+  Widget _stepperBtn(IconData icon, VoidCallback onTap) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: 44,
+        height: 44,
+        decoration: BoxDecoration(
+          color: const Color(0xFF2A2A2A),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Icon(icon, color: Colors.white, size: 22),
+      ),
+    );
+  }
+
+  Widget _summaryTile(IconData icon, String label, String value) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          padding: const EdgeInsets.all(7),
+          decoration: BoxDecoration(
+            color: const Color(0xFF3A3A3A),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Icon(icon, color: Colors.white54, size: 14),
+        ),
+        const SizedBox(width: 8),
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(label, style: const TextStyle(color: Colors.white24, fontSize: 9, letterSpacing: 0.8)),
+            const SizedBox(height: 2),
+            Text(value, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12)),
+          ],
+        ),
+      ],
+    );
+  }
+
   Widget _buildSearchBar() {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: AppConstants.padding),
@@ -320,9 +539,12 @@ class _HomeScreenState extends State<HomeScreen> {
             children: [
               const Icon(Icons.search, color: AppColors.textHint),
               const SizedBox(width: 12),
-              const Text(
-                'Search for studio, equipment, manpower',
-                style: TextStyle(color: AppColors.textHint),
+              const Flexible(
+                child: Text(
+                  'Search for studio, equipment, manpower',
+                  style: TextStyle(color: AppColors.textHint),
+                  overflow: TextOverflow.ellipsis,
+                ),
               ),
             ],
           ),
@@ -337,7 +559,7 @@ class _HomeScreenState extends State<HomeScreen> {
       _buildSingleBanner(
         title: 'Book studios, equipment &\nmanpower - all in one place',
         buttonText: 'Book Now',
-        gradientColors: [const Color(0xFFCE93D8), const Color(0xFFBA68C8)],
+        gradientColors: [const Color(0xFFCE93D8), const Color(0xFFCA9AFF)],
         icon: Icons.app_registration,
         showIcon: true,
         onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const StudioListScreen())),
@@ -625,7 +847,7 @@ class _HomeScreenState extends State<HomeScreen> {
               shape: BoxShape.circle,
             ),
             alignment: Alignment.center,
-            child: Icon(icon, color: const Color(0xFFBA68C8), size: 28),
+            child: Icon(icon, color: const Color(0xFFCA9AFF), size: 28),
           ),
           const SizedBox(height: 8),
           Container(
@@ -680,7 +902,7 @@ class _HomeScreenState extends State<HomeScreen> {
     }
 
     return SizedBox(
-      height: 260,
+      height: 280,
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: AppConstants.padding),
@@ -696,7 +918,7 @@ class _HomeScreenState extends State<HomeScreen> {
             },
             child: Container(
               width: 200,
-              height: 250,
+              height: 270,
               margin: const EdgeInsets.only(right: 16),
               decoration: BoxDecoration(
                 color: const Color(0xFF1E1E1E),
@@ -713,7 +935,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         Positioned.fill(
                           child: ClipRRect(
                             borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
-                            child: (listing.images.isNotEmpty)
+                            child: (listing.images != null && listing.images.isNotEmpty)
                               ? Image.network(
                                   listing.images[0],
                                   fit: BoxFit.cover,
@@ -782,9 +1004,13 @@ class _HomeScreenState extends State<HomeScreen> {
                             children: [
                               Text(
                                 "₹${listing.pricePerDay ?? listing.pricePerHour ?? '0'}",
-                                style: const TextStyle(fontWeight: FontWeight.w900, color: Color(0xFFBA68C8), fontSize: 14),
+                                style: const TextStyle(fontWeight: FontWeight.w900, color: Color(0xFFCA9AFF), fontSize: 14),
                               ),
-                              const Icon(Icons.favorite_border, color: Colors.white38, size: 16),
+                              WishlistButtonWidget(
+                                listing: listing,
+                                size: 20,
+                                inactiveColor: Colors.white38,
+                              ),
                             ],
                           ),
                         ],

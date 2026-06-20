@@ -3,26 +3,65 @@ import 'dart:typed_data';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:onesignal_flutter/onesignal_flutter.dart';
 
 import '../models/listing_model.dart';
 
 class ApiService {
   static String get baseUrl {
-    if (kIsWeb) return 'http://localhost:3000';
-    // 10.0.2.2 is only for the Android Emulator. 
-    // For a physical phone, use your laptop's local IP address.
-    return 'http://192.168.1.45:3000'; 
+    return 'https://z01-user-backend.onrender.com';
   }
 
-  static Future<Map<String, dynamic>?> login(String email, String password) async {
+  static Future<bool> sendOtp(String mobile, {bool isRegister = false}) async {
     try {
       final response = await http.post(
-        Uri.parse('$baseUrl/auth/login'),
+        Uri.parse('$baseUrl/auth/send-otp'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
-          'email': email, 
-          'password': password,
-          'required_role': 'customer'
+          'mobile': mobile,
+          'is_register': isRegister,
+        }),
+      );
+      
+      if (response.statusCode == 201 || response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        return data['success'] == true;
+      } else {
+        final data = jsonDecode(response.body);
+        if (data['message'] != null) {
+          throw data['message'];
+        }
+        return false;
+      }
+    } catch (e) {
+      if (e is String) rethrow;
+      print('Send OTP Error: $e');
+      return false;
+    }
+  }
+
+  static Future<Map<String, dynamic>?> verifyOtp(
+      String mobile, 
+      String otp, 
+      {
+        String requiredRole = 'customer', 
+        String userType = 'customer',
+        bool isRegister = false,
+        String? name,
+        String? email,
+      }) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/auth/verify-otp'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'mobile': mobile,
+          'otp': otp,
+          'required_role': requiredRole,
+          'user_type': userType,
+          'is_register': isRegister,
+          'name': name,
+          'email': email,
         }),
       );
       
@@ -31,44 +70,24 @@ class ApiService {
         if (data['success'] == true) {
           final prefs = await SharedPreferences.getInstance();
           await prefs.setString('user_id', data['data']['id'].toString());
-          await prefs.setString('user_email', data['data']['email']);
-          await prefs.setString('user_name', data['data']['name']);
+          if (data['data']['email'] != null) {
+             await prefs.setString('user_email', data['data']['email']);
+          }
+          if (data['data']['name'] != null) {
+             await prefs.setString('user_name', data['data']['name']);
+          }
+          if (data['data']['phone'] != null) {
+             await prefs.setString('user_phone', data['data']['phone']);
+          }
+          
+          OneSignal.login(data['data']['id'].toString());
+          
           return data['data'];
         }
       }
       return null;
     } catch (e) {
-      print('Login Error: $e');
-      return null;
-    }
-  }
-
-  static Future<Map<String, dynamic>?> register(String name, String email, String password) async {
-    try {
-      final response = await http.post(
-        Uri.parse('$baseUrl/auth/register'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({
-          'name': name, 
-          'email': email, 
-          'password': password,
-          'user_type': 'customer'
-        }),
-      );
-      
-      if (response.statusCode == 201) {
-        final data = jsonDecode(response.body);
-        if (data['success'] == true) {
-          final prefs = await SharedPreferences.getInstance();
-          await prefs.setString('user_id', data['data']['id'].toString());
-          await prefs.setString('user_email', data['data']['email']);
-          await prefs.setString('user_name', data['data']['name']);
-          return data['data'];
-        }
-      }
-      return null;
-    } catch (e) {
-      print('Register Error: $e');
+      print('Verify OTP Error: $e');
       return null;
     }
   }
@@ -76,6 +95,52 @@ class ApiService {
   static Future<void> logout() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.clear();
+    OneSignal.logout();
+  }
+
+  static Future<void> submitKyc(Map<String, dynamic> data) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final userId = prefs.getString('user_id');
+      if (userId == null) throw Exception('Not logged in');
+
+      data['user_id'] = userId;
+      final response = await http.post(
+        Uri.parse('$baseUrl/auth/kyc'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode(data),
+      );
+
+      if (response.statusCode != 200 && response.statusCode != 201) {
+        print('Backend error: ${response.statusCode} - ${response.body}');
+        throw Exception('Failed to submit KYC details: ${response.body}');
+      }
+    } catch (e) {
+      print('Error submitting KYC: $e');
+      rethrow;
+    }
+  }
+
+  static Future<void> updatePersonalInfo(Map<String, dynamic> data) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final userId = prefs.getString('user_id');
+      if (userId == null) throw Exception('Not logged in');
+
+      data['user_id'] = userId;
+      final response = await http.post(
+        Uri.parse('$baseUrl/auth/update-profile'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode(data),
+      );
+
+      if (response.statusCode != 200 && response.statusCode != 201) {
+        throw Exception('Failed to update personal info');
+      }
+    } catch (e) {
+      print('Error updating personal info: $e');
+      rethrow;
+    }
   }
 
   static Future<List<ListingModel>> getStudios() async {
@@ -151,7 +216,7 @@ class ApiService {
         Uri.parse('$baseUrl/bookings'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode(bookingData),
-      );
+      ).timeout(const Duration(seconds: 15));
       
       return response.statusCode == 201;
     } catch (e) {
@@ -193,13 +258,89 @@ class ApiService {
     }
   }
 
+  static Future<Map<String, dynamic>?> createPaymentOrder(String bookingId) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/payments/create-order'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'bookingId': bookingId}),
+      );
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        return jsonDecode(response.body);
+      }
+      return null;
+    } catch (e) {
+      print('Error creating payment order: $e');
+      return null;
+    }
+  }
+
+  static Future<Map<String, dynamic>> verifyPayment(Map<String, dynamic> data) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/payments/verify'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode(data),
+      );
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        return {'success': true};
+      } else {
+        return {'success': false, 'error': 'Server returned ${response.statusCode}: ${response.body}'};
+      }
+    } catch (e) {
+      print('Error verifying payment: $e');
+      return {'success': false, 'error': e.toString()};
+    }
+  }
+
+  static Future<bool> completeBooking(String bookingId) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/bookings/$bookingId/complete'),
+        headers: {'Content-Type': 'application/json'},
+      );
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        final data = jsonDecode(response.body);
+        return data['success'] == true;
+      }
+      return false;
+    } catch (e) {
+      print('Error completing booking: $e');
+      return false;
+    }
+  }
+
+  static Future<bool> updateLocation(String userId, String address, double lat, double lng) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/auth/update-location'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'user_id': userId,
+          'address': address,
+          'lat': lat,
+          'lng': lng,
+        }),
+      );
+      
+      if (response.statusCode == 201 || response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        return data['success'] == true;
+      }
+      return false;
+    } catch (e) {
+      print('Error updating location: $e');
+      return false;
+    }
+  }
+
   static Future<bool> cancelBooking(String bookingId, String reason) async {
     try {
       final response = await http.post(
         Uri.parse('$baseUrl/bookings/$bookingId/cancel'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({'reason': reason}),
-      );
+      ).timeout(const Duration(seconds: 15));
       if (response.statusCode == 200 || response.statusCode == 201) {
         final data = jsonDecode(response.body);
         return data['success'] == true;
@@ -241,6 +382,27 @@ class ApiService {
     }
   }
 
+  static Future<ListingModel?> getListingDetail(String id) async {
+    try {
+      final response = await http.get(Uri.parse('$baseUrl/studios/$id'));
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        if (data['success'] == true && data['data'] != null) {
+          final item = data['data'] as Map<String, dynamic>;
+          if (item['category'] == null || item['category'].toString().isEmpty) {
+            item['category'] = 'Studio';
+          }
+          return ListingModel.fromJson(item);
+        }
+      }
+      return null;
+    } catch (e) {
+      print('Error getting listing detail: $e');
+      return null;
+    }
+  }
+
+
 
   static Future<List<dynamic>> getReviews(int listingId) async {
     try {
@@ -263,7 +425,7 @@ class ApiService {
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode(reviewData),
       );
-      return response.statusCode == 201;
+      return response.statusCode == 201 || response.statusCode == 200;
     } catch (e) {
       print('Error posting review: $e');
       return false;
@@ -375,12 +537,45 @@ class ApiService {
     }
   }
 
+  static Future<bool> updateCartItemQuantity(String userId, int listingId, String category, int quantity) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/cart/update-quantity'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'userId': userId,
+          'listingId': listingId,
+          'category': category,
+          'quantity': quantity,
+        }),
+      );
+      return response.statusCode == 201 || response.statusCode == 200;
+    } catch (e) {
+      print('Error updating cart item quantity: $e');
+      return false;
+    }
+  }
+
   static Future<bool> clearCart(String userId) async {
     try {
       final response = await http.delete(Uri.parse('$baseUrl/cart/clear/$userId'));
       return response.statusCode == 200;
     } catch (e) {
       print('Error clearing cart: $e');
+      return false;
+    }
+  }
+
+  static Future<bool> submitReport(Map<String, dynamic> reportData) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/reports'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode(reportData),
+      );
+      return response.statusCode == 201 || response.statusCode == 200;
+    } catch (e) {
+      print('Error submitting report: $e');
       return false;
     }
   }
