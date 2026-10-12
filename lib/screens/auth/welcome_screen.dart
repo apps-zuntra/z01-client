@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:animate_do/animate_do.dart';
 import 'login_screen.dart';
 import 'register_screen.dart';
+import '../../services/api_service.dart';
+import '../home/home_screen.dart';
 
 class WelcomeScreen extends StatelessWidget {
   const WelcomeScreen({super.key});
@@ -130,6 +132,29 @@ class WelcomeScreen extends StatelessWidget {
                         ),
                       ),
                       child: const Text('Signup', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 16, color: Color(0xFF262626))),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  FadeInUp(
+                    delay: const Duration(milliseconds: 700),
+                    child: Center(
+                      child: TextButton.icon(
+                        onPressed: () async {
+                          await ApiService.loginAsDemoReviewer();
+                          if (context.mounted) {
+                            Navigator.pushAndRemoveUntil(
+                              context,
+                              MaterialPageRoute(builder: (_) => const HomeScreen()),
+                              (route) => false,
+                            );
+                          }
+                        },
+                        icon: const Icon(Icons.verified_user_outlined, color: Colors.white70, size: 16),
+                        label: const Text(
+                          'Play Store Reviewer / Demo Access',
+                          style: TextStyle(color: Colors.white70, fontSize: 13, fontWeight: FontWeight.w500),
+                        ),
+                      ),
                     ),
                   ),
                 ],

@@ -38,6 +38,9 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
   @override
   void initState() {
     super.initState();
+    if (ApiService.isDemoNumber(widget.mobile)) {
+      _otpController.text = '123456';
+    }
     startTimer();
   }
 
@@ -191,8 +194,29 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
                   ),
                 ),
               ),
-              const SizedBox(height: 48),
-
+              if (ApiService.isDemoNumber(widget.mobile)) ...[
+                Container(
+                  margin: const EdgeInsets.only(bottom: 24),
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                  decoration: BoxDecoration(
+                    color: _purple.withOpacity(0.12),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: _purple.withOpacity(0.4)),
+                  ),
+                  child: Row(
+                    children: const [
+                      Icon(Icons.verified_user, color: _purple, size: 18),
+                      SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          'Reviewer Mode: OTP pre-filled as 123456. Tap Verify to proceed.',
+                          style: TextStyle(color: _purple, fontSize: 13, fontWeight: FontWeight.w600),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
               FadeInLeft(
                 delay: const Duration(milliseconds: 300),
                 child: Column(

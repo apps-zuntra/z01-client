@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:animate_do/animate_do.dart';
 import '../../services/api_service.dart';
 import 'otp_verification_screen.dart';
+import '../home/home_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -45,6 +46,28 @@ class _LoginScreenState extends State<LoginScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(e.toString().replaceAll('Exception: ', '')), backgroundColor: Colors.red),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _handleDemoLogin() async {
+    setState(() => _isLoading = true);
+    try {
+      await ApiService.loginAsDemoReviewer();
+      if (mounted) {
+        Navigator.pushAndRemoveUntil(
+          context,
+          MaterialPageRoute(builder: (_) => const HomeScreen()),
+          (route) => false,
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Demo Login Error: $e'), backgroundColor: Colors.red),
         );
       }
     } finally {
@@ -169,6 +192,65 @@ class _LoginScreenState extends State<LoginScreen> {
                   child: _isLoading 
                     ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.black))
                     : const Text('Get OTP', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 15)),
+                ),
+              ),
+
+              const SizedBox(height: 24),
+
+              // Play Store Reviewer / Demo Bypass Section
+              FadeInUp(
+                delay: const Duration(milliseconds: 600),
+                child: Column(
+                  children: [
+                    Row(
+                      children: const [
+                        Expanded(child: Divider(color: Colors.white24)),
+                        Padding(
+                          padding: EdgeInsets.symmetric(horizontal: 12.0),
+                          child: Text('OR', style: TextStyle(color: Colors.white38, fontSize: 12)),
+                        ),
+                        Expanded(child: Divider(color: Colors.white24)),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    OutlinedButton.icon(
+                      onPressed: _isLoading ? null : _handleDemoLogin,
+                      icon: const Icon(Icons.verified_user, color: _purple, size: 18),
+                      label: const Text('Play Store / Demo Login', style: TextStyle(color: _purple, fontWeight: FontWeight.bold, fontSize: 14)),
+                      style: OutlinedButton.styleFrom(
+                        side: BorderSide(color: _purple.withOpacity(0.6), width: 1.2),
+                        minimumSize: const Size(double.infinity, 48),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    GestureDetector(
+                      onTap: () {
+                        setState(() {
+                          _mobileController.text = '9999999999';
+                        });
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.04),
+                          borderRadius: BorderRadius.circular(6),
+                          border: Border.all(color: Colors.white10),
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: const [
+                            Icon(Icons.info_outline, color: Colors.white54, size: 14),
+                            SizedBox(width: 6),
+                            Text(
+                              'Test credentials: 9999999999 (OTP: 123456)',
+                              style: TextStyle(color: Colors.white54, fontSize: 12),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ],

@@ -20,6 +20,15 @@ export class AuthService {
     if (!mobile) throw new BadRequestException('Mobile number is required');
     const phone = this.normalizePhone(mobile);
 
+    // Play Store Reviewer bypass
+    const demoPhones = ['9999999999', '9876543210', '1234567890', '8888888888', '0000000000'];
+    if (demoPhones.includes(phone)) {
+      return {
+        success: true,
+        requestId: 'playstore-demo-session',
+      };
+    }
+
     // Check if user exists BEFORE sending OTP
     const userResult = await this.pool.query('SELECT id FROM users WHERE phone = $1', [phone]);
     const userExists = userResult.rows.length > 0;
@@ -78,6 +87,24 @@ export class AuthService {
     if (!mobile || !otp) throw new BadRequestException('Mobile and OTP are required');
     
     const phone = this.normalizePhone(mobile);
+
+    // Play Store Reviewer bypass
+    const demoPhones = ['9999999999', '9876543210', '1234567890', '8888888888', '0000000000'];
+    if (demoPhones.includes(phone) && (otp === '123456' || otp === '000000' || otp === '111111')) {
+      let userResult = await this.pool.query('SELECT id, name, email, phone, user_type, created_at FROM users WHERE phone = $1', [phone]);
+      let user = userResult.rows[0];
+      if (!user) {
+        const newUserResult = await this.pool.query(
+          'INSERT INTO users (phone, name, email, user_type) VALUES ($1, $2, $3, $4) RETURNING id, name, email, phone, user_type, created_at',
+          [phone, 'Google Play Reviewer', 'playstore@zuntra.com', user_type]
+        );
+        user = newUserResult.rows[0];
+      }
+      return {
+        success: true,
+        data: user,
+      };
+    }
 
     const sessionResult = await this.pool.query(
       'SELECT session_id FROM otps WHERE phone = $1 ORDER BY created_at DESC LIMIT 1',

@@ -12,7 +12,43 @@ class ApiService {
     return 'https://zo1backend.vercel.app';
   }
 
+  static const List<String> demoPhones = [
+    '9999999999',
+    '9876543210',
+    '1234567890',
+    '8888888888',
+    '0000000000',
+  ];
+
+  static bool isDemoNumber(String mobile) {
+    final digits = mobile.replaceAll(RegExp(r'\D'), '');
+    final last10 = digits.length >= 10 ? digits.substring(digits.length - 10) : digits;
+    return demoPhones.contains(last10);
+  }
+
+  static Future<Map<String, dynamic>> loginAsDemoReviewer() async {
+    final demoUser = {
+      'id': '999999',
+      'name': 'Google Play Reviewer',
+      'email': 'playstore@zuntra.com',
+      'phone': '9999999999',
+      'user_type': 'customer',
+      'role': 'customer',
+    };
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('user_id', demoUser['id']!);
+    await prefs.setString('user_name', demoUser['name']!);
+    await prefs.setString('user_email', demoUser['email']!);
+    await prefs.setString('user_phone', demoUser['phone']!);
+    return demoUser;
+  }
+
   static Future<bool> sendOtp(String mobile, {bool isRegister = false}) async {
+    // Play Store Reviewer bypass
+    if (isDemoNumber(mobile)) {
+      return true;
+    }
+
     try {
       final response = await http.post(
         Uri.parse('$baseUrl/auth/send-otp'),
@@ -50,6 +86,38 @@ class ApiService {
         String? name,
         String? email,
       }) async {
+    // Play Store Reviewer bypass
+    if (isDemoNumber(mobile) && (otp == '123456' || otp == '000000' || otp == '111111')) {
+      try {
+        final response = await http.post(
+          Uri.parse('$baseUrl/auth/verify-otp'),
+          headers: {'Content-Type': 'application/json'},
+          body: jsonEncode({
+            'mobile': mobile,
+            'otp': otp,
+            'required_role': requiredRole,
+            'user_type': userType,
+            'is_register': isRegister,
+            'name': name ?? 'Google Play Reviewer',
+            'email': email ?? 'playstore@zuntra.com',
+          }),
+        );
+        if (response.statusCode == 200 || response.statusCode == 201) {
+          final data = jsonDecode(response.body);
+          if (data['success'] == true && data['data'] != null) {
+            final prefs = await SharedPreferences.getInstance();
+            await prefs.setString('user_id', data['data']['id'].toString());
+            if (data['data']['email'] != null) await prefs.setString('user_email', data['data']['email']);
+            if (data['data']['name'] != null) await prefs.setString('user_name', data['data']['name']);
+            if (data['data']['phone'] != null) await prefs.setString('user_phone', data['data']['phone']);
+            try { OneSignal.login(data['data']['id'].toString()); } catch (_) {}
+            return data['data'];
+          }
+        }
+      } catch (_) {}
+      return await loginAsDemoReviewer();
+    }
+
     try {
       final response = await http.post(
         Uri.parse('$baseUrl/auth/verify-otp'),
