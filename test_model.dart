@@ -1,1 +1,0 @@
-import 'dart:convert'; import 'lib/models/listing_model.dart'; void main() { var j = {'id': '1', 'vendor_id': '1', 'listing_title': 'test', 'category': 'equipment', 'sub_category': 'test', 'images': [], 'status': 'active', 'avg_rating': 0, 'specifications': '{\"includedAccessories\": [\"Charger\"]} '}; var m = ListingModel.fromJson(j); print('Equipments: \'); }
