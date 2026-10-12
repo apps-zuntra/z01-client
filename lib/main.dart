@@ -30,9 +30,9 @@ void main() async {
     }
   });
 
-  // Fire-and-forget ping to wake up the Render backend from sleep
+  // Fire-and-forget ping to wake up the backend from sleep
   // This drastically reduces the wait time when the user hits "Login"
-  http.get(Uri.parse('https://z01-user-backend.onrender.com/')).catchError((_) => http.Response('', 200));
+  http.get(Uri.parse('https://zo1backend.vercel.app/')).catchError((_) => http.Response('', 200));
 
   final prefs = await SharedPreferences.getInstance();
   final userId = prefs.getString('user_id');

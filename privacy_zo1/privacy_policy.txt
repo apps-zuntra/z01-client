@@ -1,0 +1,193 @@
+Privacy Policy — Bidly
+
+This Privacy Policy describes how [Bidly Legal Entity Name], a subsidiary of Zuntra ("Company") collects, uses, and protects personal data of users of the Bidly bidding platform. It is published in accordance with the Digital Personal Data Protection Act, 2023 ("DPDP Act"), the Information Technology Act, 2000, and applicable rules, including the Information Technology (Intermediary Guidelines and Digital Media Ethics Code) Rules, 2021.
+
+Bidly is an online platform where users can place bids on [items / services / projects, to be confirmed] listed by other users. This Policy covers the Bidly web and mobile applications and website. [Confirm whether Bidly is one application or has separate apps for buyers and sellers.]
+
+1. Definitions
+
+1.1 "Personal Data" any data about an individual who is identifiable by or in relation to such data, as defined under the DPDP Act.
+
+1.2 "Data Principal" you, the individual using the Platform, whether as a Bidder, a Seller or a visitor.
+
+1.3 "Data Fiduciary" the Company, which determines the purpose and means of processing your Personal Data.
+
+1.4 "Bidder" a User who places a bid on a Listing.
+
+1.5 "Seller" a User who creates a Listing and invites bids.
+
+1.6 "Listing" an item, service or project posted on the Platform on which bids can be placed.
+
+2. Scope
+
+This Policy applies to Personal Data collected through the Bidly Platform from Bidders, Sellers and visitors to the Bidly website.
+
+3. Information We Collect
+
+Category
+
+Examples
+
+Collected from
+
+Account data
+
+Name, email, phone number, username, password (hashed)
+
+Provided directly by you
+
+Identity and verification data
+
+[PAN, Aadhaar or other government ID, business registration details, if verification is required]
+
+Provided directly by you
+
+Bidding data
+
+Bids placed, bid amounts and timestamps, auto-bid settings, watchlists, wins and losses
+
+Generated through Platform use
+
+Listing data
+
+Item or service descriptions, photos, reserve prices, seller ratings
+
+Provided by Sellers
+
+Transaction and payment data
+
+Payment method details, billing information, payout bank or UPI details, invoices
+
+Provided directly by you, processed by our payment gateway
+
+Delivery data
+
+Delivery address and contact details
+
+Provided directly by you
+
+Communications
+
+In-app messages, support requests, reviews and ratings
+
+Generated through Platform use
+
+Usage and device data
+
+IP address, device type, operating system, app interactions, approximate location
+
+Collected automatically
+
+4. Sensitive Data: Verification and Financial Information
+
+4.1 Identity documents and payout details are collected only to verify you, prevent fraud and process payments, and are shared only as described in Clause 7. [Confirm which documents are collected and why.]
+
+4.2 Payment card, UPI and bank details are handled by our payment gateway. [We do not store full card numbers.]
+
+4.3 Your delivery address is shared only with the Seller or Bidder involved in a completed transaction with you.
+
+5. How We Use Your Information
+
+5.1 We use your information to:
+
+a. Create and maintain your account and verify your identity
+
+b. Enable Sellers to create Listings and Bidders to place bids, and to determine and communicate winning bids
+
+c. Process payments, refunds and payouts, and issue invoices
+
+d. Facilitate delivery or fulfilment between the Bidder and the Seller
+
+e. Send service-related communications, bid alerts and, where you opt in, marketing communications
+
+f. Detect and prevent fraud, including shill bidding, bid manipulation and fake accounts
+
+g. Resolve disputes and provide customer support
+
+h. Comply with applicable law
+
+6. Consent
+
+6.1 By registering, you consent to the processing described in this Policy. You may withdraw consent at any time by contacting our Grievance Officer (Clause 12), which may limit your ability to use certain features.
+
+6.2 Withdrawal of consent does not affect processing already done, and we may continue to keep data we are required to retain by law, for example transaction records.
+
+7. Sharing and Disclosure
+
+7.1 We do not sell your Personal Data. We share it only:
+
+a. With the other party to a transaction, to the extent necessary to complete it. For example, a Seller sees the delivery details of the winning Bidder, and a Bidder sees the Seller's public profile and ratings
+
+b. With payment gateway, identity verification, logistics, cloud hosting and communication providers who support Platform operations
+
+c. With other users, only your username, public profile, ratings and, where a Listing shows bids, your bid amounts under your username or a masked ID. [Confirm bid visibility.]
+
+d. With regulators, law enforcement or courts where required by law
+
+e. In connection with a merger, acquisition or sale of assets, subject to equivalent protection
+
+f. With your explicit consent, for any other purpose
+
+8. Data Retention
+
+We retain Personal Data as long as necessary for the purposes described here, or as required by law. Upon account deletion, data is deleted or anonymised within [retention period], except where retention is required for legal compliance, tax and accounting records, fraud prevention or dispute resolution. Bid and transaction records are retained for [transaction record retention period].
+
+9. Data Security
+
+We implement reasonable security practices, including encryption in transit and at rest and access controls, in accordance with the IT (Reasonable Security Practices and Procedures and Sensitive Personal Data or Information) Rules, 2011. In the event of a breach likely to affect you, we will notify you and the relevant authority per DPDP Act timelines.
+
+10. Your Rights as a Data Principal
+
+Right
+
+What it means
+
+Access
+
+Request a summary of the personal data we hold about you.
+
+Correction
+
+Ask us to correct inaccurate or incomplete personal data.
+
+Erasure
+
+Ask us to delete personal data no longer necessary for the purpose collected, subject to legal retention.
+
+Withdraw consent
+
+Withdraw consent for a specific processing purpose at any time.
+
+Grievance redressal
+
+Raise a complaint with our Grievance Officer (Clause 12).
+
+Nominate
+
+Nominate another individual to exercise these rights on your behalf in the event of death or incapacity, under the DPDP Act.
+
+11. Children's Privacy
+
+The Platform is intended for individuals 18 years or older, who are legally able to enter into a binding contract. We do not knowingly collect Personal Data from minors.
+
+12. Grievance Officer and Contact
+
+For questions or to exercise your rights, contact:
+
+Name: [Grievance Officer Name]
+
+Email: [privacy@bidly-domain]
+
+Phone: [Phone Number]
+
+Address: [Bidly Legal Entity Name], a subsidiary of Zuntra, [Registered Office Address]
+
+We will acknowledge complaints within 24 hours and aim to resolve them within [15 days or as required by law].
+
+13. Cross-Border Data Transfers
+
+Your data may be processed on servers outside India, including by cloud providers, subject to safeguards consistent with the DPDP Act. Primary hosting location: [hosting country or region].
+
+14. Changes to This Policy
+
+We may update this Policy from time to time. Material changes will be notified through the Platform. Continued use constitutes acceptance.

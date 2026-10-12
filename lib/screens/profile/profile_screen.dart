@@ -10,6 +10,8 @@ import 'package:animate_do/animate_do.dart';
 import '../auth/welcome_screen.dart';
 import 'kyc_screen.dart';
 import 'wishlist_screen.dart';
+import 'privacy_policy_screen.dart';
+import 'terms_conditions_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -133,7 +135,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     () => Navigator.push(context, MaterialPageRoute(builder: (_) => const FAQScreen())),
                   ),
 
-                  _buildMenuItem(context, Icons.privacy_tip_outlined, 'Privacy Policy', () {}),
+                  _buildMenuItem(
+                    context,
+                    Icons.privacy_tip_outlined,
+                    'Privacy Policy',
+                    () => Navigator.push(context, MaterialPageRoute(builder: (_) => const PrivacyPolicyScreen())),
+                  ),
+                  _buildMenuItem(
+                    context,
+                    Icons.description_outlined,
+                    'Terms & Conditions',
+                    () => Navigator.push(context, MaterialPageRoute(builder: (_) => const TermsConditionsScreen())),
+                  ),
                   
                   const SizedBox(height: 40),
                   

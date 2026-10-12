@@ -9,7 +9,7 @@ import '../models/listing_model.dart';
 
 class ApiService {
   static String get baseUrl {
-    return 'https://z01-user-backend.onrender.com';
+    return 'https://zo1backend.vercel.app';
   }
 
   static Future<bool> sendOtp(String mobile, {bool isRegister = false}) async {
