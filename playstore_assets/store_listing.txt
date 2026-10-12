@@ -1,0 +1,76 @@
+============================================================
+GOOGLE PLAY STORE LISTING ASSETS FOR Z01
+============================================================
+
+------------------------------------------------------------
+1. APP NAME (Max 30 characters)
+------------------------------------------------------------
+Recommended:
+Z01: Studios & Gear Rental
+(Length: 26 / 30 characters)
+
+Alternative (Pure Brand):
+Z01
+(Length: 3 / 30 characters)
+
+
+------------------------------------------------------------
+2. SHORT DESCRIPTION (Max 80 characters)
+------------------------------------------------------------
+Recommended:
+Book creative studios, rent camera gear, and hire talent easily with Z01.
+(Length: 74 / 80 characters)
+
+Alternative:
+Rent photo & film studios, camera gear, and hire creative talent with Z01.
+(Length: 74 / 80 characters)
+
+
+------------------------------------------------------------
+3. FULL DESCRIPTION (Max 4000 characters)
+------------------------------------------------------------
+Z01 is the all-in-one marketplace built specifically for creators, filmmakers, photographers, and media production teams. Whether you are planning a fashion photoshoot, an indie film production, a commercial shoot, or a music video, Z01 connects you with verified creative spaces, top-tier equipment, and experienced production talent.
+
+--- KEY FEATURES ---
+
+📸 BOOK CREATIVE STUDIOS
+• Explore verified photography, film, and chroma studios near you.
+• Filter studios by hourly or daily booking packages.
+• Review high-resolution studio photos, available amenities (air conditioning, makeup rooms, lighting grids, power backups), and dimensions before booking.
+• Real-time availability and instant scheduling.
+
+🎥 RENT PROFESSIONAL GEAR & EQUIPMENT
+• Access cinema cameras, DSLR & mirrorless bodies, prime & zoom lenses, gimbals, drones, and lighting setups.
+• Rent high-end production equipment from verified local rental houses and creators.
+• Flexible rental durations (hourly or multi-day shoots) with clear security deposit terms and safe returns.
+
+🎬 HIRE EXPERIENCED PRODUCTION TALENT
+• Connect with skilled crew members, including photographers, cinematographers, gaffers, sound recordists, drone pilots, and editors.
+• View verified portfolios, past project work, and transparent rates.
+• Assemble a complete crew for your next production in minutes.
+
+🔒 SECURE PAYMENTS & PROTECTION
+• Safe digital transactions powered by certified payment gateways.
+• Transparent pricing with zero hidden charges.
+• Clear refund, dispute, and cancellation policies.
+
+📍 LOCALIZED DISCOVERY & REAL-TIME SEARCH
+• Discover studios and rental inventory near your shoot location using interactive map search.
+• Search by camera brand, studio size, lighting gear, or specialized skill sets.
+• Direct in-app status updates for booking confirmations, equipment dispatches, and returns.
+
+--- HOW IT WORKS ---
+
+1. Discover: Browse studios, camera gear, or talent based on your shoot location and requirements.
+2. Select & Schedule: Choose your preferred time slots or rental dates.
+3. Book Securely: Confirm and pay through secure in-app payments.
+4. Create: Show up to your studio, pick up your gear, and bring your creative vision to life!
+
+Empower your creative productions. Download Z01 today and start creating.
+
+
+------------------------------------------------------------
+4. COMMON VISUAL ASSETS
+------------------------------------------------------------
+- App Icon: playstore_assets/app_icon_512x512.png (512x512 PNG, 320 KB)
+- Feature Graphic: playstore_assets/feature_graphic_1024x500.png (1024x500 PNG, 710 KB)
